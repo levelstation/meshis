@@ -1,14 +1,14 @@
-#ifndef MESHIGOTCHI_GOTCHI_RENDERER_H
-#define MESHIGOTCHI_GOTCHI_RENDERER_H
-#include "GotchiSprites.h"
+#ifndef MESHIS_MESHI_RENDERER_H
+#define MESHIS_MESHI_RENDERER_H
+#include "MeshiSprites.h"
 #include <stdio.h>
-#include "Meshigotchi.h"
+#include "Meshis.h"
 #include "NuxRenderer.h"
-namespace meshigotchi_gotchi {
-inline const char* stateName(meshigotchi::State s){return s==meshigotchi::State::Idle?"Idle":meshigotchi::stateLabel(s);}
+namespace meshis_pets {
+inline const char* stateName(meshis::State s){return s==meshis::State::Idle?"Idle":meshis::stateLabel(s);}
 // Shared by OLED and desktop. Animation is elapsed-time based, bounded to 5 Hz.
-template<class D> void draw(D& d,uint8_t pet,const meshigotchi::Companion& c,uint32_t now,bool enabled,int x=8,int y=22){
-  using meshigotchi::State;const auto s=c.state(now);const int f=c.frame(now,enabled);
+template<class D> void draw(D& d,uint8_t pet,const meshis::Companion& c,uint32_t now,bool enabled,int x=8,int y=22){
+  using meshis::State;const auto s=c.state(now);const int f=c.frame(now,enabled);
   const int bob=(s==State::Idle || s==State::Message || s==State::Bluetooth || s==State::Tx)?f:0;
   d.setColor(1);sprite(d,pet,x,y-bob,2);
   const bool sleepy=s==State::Quiet || s==State::LowBattery;

@@ -1,0 +1,1286 @@
+diff --git a/examples/companion_radio/NodePrefs.h b/examples/companion_radio/NodePrefs.h
+index 46a3dbb..e3d8803 100644
+--- a/examples/companion_radio/NodePrefs.h
++++ b/examples/companion_radio/NodePrefs.h
+@@ -48,6 +48,11 @@ public:
+   char default_scope_name[31];
+   uint8_t default_scope_key[16];
+   int8_t tz_offset = 0;
++  uint8_t meshis_timezone = 1;
++  uint8_t meshis_animations = 1;
++#if defined(MESHIS_BOARD)
++  uint8_t meshis_pet = MESHIS_DEFAULT_PET;
++#endif
+ #ifdef ENABLE_WIFI_INTERFACE
+   #ifndef WIFI_SSID
+     #define WIFI_SSID ""
+@@ -166,6 +171,11 @@ private:
+       def("tel_loc", _parent->telemetry_mode_loc);
+       def("tel_env", _parent->telemetry_mode_env);
+       def("tz_offset", _parent->tz_offset);
++      def("mg_tz", _parent->meshis_timezone);
++      def("mg_anim", _parent->meshis_animations);
++#if defined(MESHIS_BOARD)
++      def("mg_pet", _parent->meshis_pet);
++#endif
+     }
+   public:
+     CompanionPrefs(NodePrefs* parent) : _parent(parent) { }
+diff --git a/examples/companion_radio/main.cpp b/examples/companion_radio/main.cpp
+index 839d495..988af16 100644
+--- a/examples/companion_radio/main.cpp
++++ b/examples/companion_radio/main.cpp
+@@ -1,3 +1,7 @@
++#include "ui-new/NuxRenderer.h"
++#if defined(MESHIS_BOARD)
++#include "ui-new/MeshiRenderer.h"
++#endif
+ #include <Arduino.h>   // needed for PlatformIO
+ #include <Mesh.h>
+ #include "MyMesh.h"
+@@ -153,14 +157,41 @@ void setup() {
+   }
+ #endif
+ 
+-  if (!radio_init()) { halt(); }
++  if (!radio_init()) {
++    if(disp) {
++      meshis::Companion failed;failed.error(1);
++      disp->startFrame();disp->setColor(UIColor::primary_txt);
++      #if defined(MESHIS_BOARD)
++      meshis_pets::draw(*disp,meshis_pets::defaultPet,failed,0,false);
++      #elif !defined(LU_ALERT_BRANDING)
++      meshis::drawNux(*disp,failed,0,false);
++      #endif
++      disp->setCursor(0,0);disp->print("E001 Radio init");disp->endFrame();
++    }
++    halt();
++  }
+ 
+   fast_rng.begin(radio_driver.getRngSeed());
+ 
+ #if defined(NRF52_PLATFORM) || defined(STM32_PLATFORM)
++  #if defined(LU_ALERT_PRESERVE_STORAGE)
++  if (!InternalFS.Adafruit_LittleFS::begin()) {
++    if (disp) { disp->startFrame();disp->setColor(UIColor::primary_txt);
++      disp->setTextSize(1);disp->drawTextCentered(64,16,"E901 Storage mount");
++      disp->drawTextCentered(64,32,"No format. Stopped.");disp->endFrame(); }
++    halt();
++  }
++  #else
+   InternalFS.begin();
++  #endif
+   #if defined(QSPIFLASH)
+     if (!QSPIFlash.begin()) {
++      #if defined(LU_ALERT_PRESERVE_STORAGE)
++      if (disp) { disp->startFrame();disp->setColor(UIColor::primary_txt);
++        disp->setTextSize(1);disp->drawTextCentered(64,16,"E902 QSPI mount");
++        disp->drawTextCentered(64,32,"No format. Stopped.");disp->endFrame(); }
++      halt();
++      #endif
+       // debug output might not be available at this point, might be too early. maybe should fall back to InternalFS here?
+       MESH_DEBUG_PRINTLN("CustomLFS_QSPIFlash: failed to initialize");
+     } else {
+diff --git a/examples/companion_radio/ui-new/UITask.cpp b/examples/companion_radio/ui-new/UITask.cpp
+index bc25de7..34f97c5 100644
+--- a/examples/companion_radio/ui-new/UITask.cpp
++++ b/examples/companion_radio/ui-new/UITask.cpp
+@@ -3,6 +3,29 @@
+ #include "../MyMesh.h"
+ #include "target.h"
+ #include <time.h>
++#include "Meshis.h"
++#if defined(MESHIS_V2)
++#include "KeyLock.h"
++#include "LockRenderer.h"
++#include "QuickTx.h"
++#endif
++#include "NuxRenderer.h"
++#include "MessagesUi.h"
++#include "MeshCoreMessages.h"
++// MESHIS OVERLAY
++static meshis::Companion nux;
++static meshis::MessagesUi messages;
++static MeshCoreMessages messageMesh;
++#if defined(MESHIS_V2)
++static meshis::QuickTx quickTx;
++static meshis::MenuDebounce menuDebounce;
++static meshis::MenuDebounce navigationDebounce[5];
++#endif
++static uint16_t nuxBatteryMv = 0;
++static meshis::ChargeStatus chargeStatus = meshis::ChargeStatus::Unknown;
++static bool nuxPowerDirty = false;
++static uint32_t nuxLastFrame = 0;
++
+ #ifdef ENABLE_WIFI_INTERFACE
+   #include <WiFi.h>
+ #endif
+@@ -33,694 +56,7 @@
+ 
+ #include "icons.h"
+ 
+-class SplashScreen : public UIScreen {
+-  UITask* _task;
+-  unsigned long dismiss_after;
+-  char _version_info[12];
+-
+-public:
+-  SplashScreen(UITask* task) : _task(task) {
+-    // strip off dash and commit hash by changing dash to null terminator
+-    // e.g: v1.2.3-abcdef -> v1.2.3
+-    const char *ver = FIRMWARE_VERSION;
+-    const char *dash = strchr(ver, '-');
+-
+-    int len = dash ? dash - ver : strlen(ver);
+-    if (len >= sizeof(_version_info)) len = sizeof(_version_info) - 1;
+-    memcpy(_version_info, ver, len);
+-    _version_info[len] = 0;
+-
+-    dismiss_after = millis() + BOOT_SCREEN_MILLIS;
+-  }
+-
+-  int render(DisplayDriver& display) override {
+-    // meshcore logo
+-    display.setColor(UIColor::corp_blue);
+-    int logoWidth = 128;
+-    display.drawXbm((display.width() - logoWidth) / 2, 3, meshcore_logo, logoWidth, 13);
+-
+-    // meshcore website
+-    const char* website = "https://meshcore.io";
+-    display.setColor(UIColor::primary_txt);
+-    display.setTextSize(1);
+-    uint16_t websiteWidth = display.getTextWidth(website);
+-    display.setCursor((display.width() - websiteWidth) / 2, 22);
+-    display.print(website);
+-
+-    // version info
+-    display.setColor(UIColor::primary_txt);
+-    display.setTextSize(1);
+-    display.drawTextCentered(display.width()/2, 35, _version_info);
+-
+-    display.setColor(UIColor::secondary_txt);
+-    display.setTextSize(1);
+-    display.drawTextCentered(display.width()/2, 48, FIRMWARE_BUILD_DATE);
+-
+-    return 1000;
+-  }
+-
+-  void poll() override {
+-    if (millis() >= dismiss_after) {
+-      _task->gotoHomeScreen();
+-    }
+-  }
+-};
+-
+-class HomeScreen : public UIScreen {
+-  enum HomePage {
+-    FIRST,
+-    RECENT,
+-    RADIO,
+-    BLUETOOTH,
+-    ADVERT,
+-#if ENV_INCLUDE_GPS == 1
+-    GPS,
+-#endif
+-#if UI_SENSORS_PAGE == 1
+-    SENSORS,
+-#endif
+-#if UI_DISCOVER_SCREEN
+-    DISCOVERY,
+-#endif
+-#ifndef UI_NO_HIBERNATE
+-    SHUTDOWN,
+-#endif
+-    Count    // keep as last
+-  };
+-
+-  UITask* _task;
+-  mesh::RTCClock* _rtc;
+-  SensorManager* _sensors;
+-  NodePrefs* _node_prefs;
+-  uint8_t _page;
+-  bool _shutdown_init;
+-  AdvertPath recent[UI_RECENT_LIST_SIZE];
+-#if UI_DISCOVER_SCREEN
+-  DiscoveredNode discovered[DISCOVERED_NODES_TABLE_SIZE]; // not circular, latest discovered nodes are not kept
+-  uint32_t disc_node_req_tag = 0;
+-  uint32_t disc_nodes_count = 0;
+-  uint32_t discovery_req_time = 0;
+-  bool discovery_disp_names = true; // by default desplay names if available (removes SNR_O)
+-#endif
+-
+-  void renderBatteryIndicator(DisplayDriver& display, uint16_t batteryMilliVolts) {
+-    // Convert millivolts to percentage
+-#ifndef BATT_MIN_MILLIVOLTS
+-  #define BATT_MIN_MILLIVOLTS 3000
+-#endif
+-#ifndef BATT_MAX_MILLIVOLTS
+-  #define BATT_MAX_MILLIVOLTS 4200
+-#endif
+-    const int minMilliVolts = BATT_MIN_MILLIVOLTS;
+-    const int maxMilliVolts = BATT_MAX_MILLIVOLTS;
+-    int batteryPercentage = ((batteryMilliVolts - minMilliVolts) * 100) / (maxMilliVolts - minMilliVolts);
+-    if (batteryPercentage < 0) batteryPercentage = 0; // Clamp to 0%
+-    if (batteryPercentage > 100) batteryPercentage = 100; // Clamp to 100%
+-
+-    // battery icon
+-    int iconWidth = 24;
+-    int iconHeight = 10;
+-    int iconX = display.width() - iconWidth - 5; // Position the icon near the top-right corner
+-    int iconY = 0;
+-    display.setColor(UIColor::title_txt);
+-
+-    // battery outline
+-    display.drawRect(iconX, iconY, iconWidth, iconHeight);
+-
+-    // battery "cap"
+-    display.fillRect(iconX + iconWidth, iconY + (iconHeight / 4), 3, iconHeight / 2);
+-
+-    // fill the battery based on the percentage
+-    int fillWidth = (batteryPercentage * (iconWidth - 4)) / 100;
+-    display.fillRect(iconX + 2, iconY + 2, fillWidth, iconHeight - 4);
+-
+-    // while charging, show a bolt (or a plug once full) just left of the battery,
+-    // keeping the fill bar itself clean and uninterrupted
+-    bool charging = board.isExternalPowered();
+-    if (charging) {
+-      // There's no charge-complete signal on most boards, so "full" is a high
+-      // voltage band rather than an exact 100% (a real pack rarely reads 4.2V).
+-      const int BATT_FULL_PCT = 95;
+-      const uint8_t* symbol = (batteryPercentage >= BATT_FULL_PCT) ? plug_icon : charging_icon;
+-      display.setColor(UIColor::title_txt);
+-      display.drawXbm(iconX - 9, iconY + 1, symbol, 8, 8);
+-    }
+-
+-    // show muted icon if buzzer is muted (shifted further left when the charging
+-    // icon already occupies the slot immediately left of the battery)
+-#ifdef PIN_BUZZER
+-    if (_task->isBuzzerQuiet()) {
+-      display.setColor(UIColor::warning_txt);
+-      display.drawXbm(iconX - (charging ? 18 : 9), iconY + 1, muted_icon, 8, 8);
+-    }
+-#endif
+-  }
+-
+-  CayenneLPP sensors_lpp;
+-  int sensors_nb = 0;
+-  bool sensors_scroll = false;
+-  int sensors_scroll_offset = 0;
+-  int next_sensors_refresh = 0;
+-
+-  void refresh_sensors() {
+-    if (millis() > next_sensors_refresh) {
+-      sensors_lpp.reset();
+-      sensors_nb = 0;
+-      sensors_lpp.addVoltage(TELEM_CHANNEL_SELF, (float)board.getBattMilliVolts() / 1000.0f);
+-      sensors.querySensors(0xFF, sensors_lpp);
+-      LPPReader reader (sensors_lpp.getBuffer(), sensors_lpp.getSize());
+-      uint8_t channel, type;
+-      while(reader.readHeader(channel, type)) {
+-        reader.skipData(type);
+-        sensors_nb ++;
+-      }
+-      sensors_scroll = sensors_nb > UI_RECENT_LIST_SIZE;
+-#if AUTO_OFF_MILLIS > 0
+-      next_sensors_refresh = millis() + 5000; // refresh sensor values every 5 sec
+-#else
+-      next_sensors_refresh = millis() + 60000; // refresh sensor values every 1 min
+-#endif
+-    }
+-  }
+-
+-public:
+-  HomeScreen(UITask* task, mesh::RTCClock* rtc, SensorManager* sensors, NodePrefs* node_prefs)
+-     : _task(task), _rtc(rtc), _sensors(sensors), _node_prefs(node_prefs), _page(0),
+-       _shutdown_init(false), sensors_lpp(200) {  }
+-
+-#if UI_DISCOVER_SCREEN
+-  bool sendDiscoverRequest() {
+-    uint8_t cmd_bytes[6];
+-    cmd_bytes[0] = CTL_TYPE_NODE_DISCOVER_REQ | 1; // DISCOVER_REQ | prefix only
+-    cmd_bytes[1] = 0xFF;     // Repeaters
+-    the_mesh.getRNG()->random((uint8_t *) &disc_node_req_tag, 4);  // generate random tag
+-    memcpy(&cmd_bytes[2], &disc_node_req_tag, 4);
+-    disc_nodes_count = 0;
+-    mesh::Packet* req = the_mesh.createControlData(cmd_bytes, sizeof(cmd_bytes));
+-    if (req) {
+-      the_mesh.sendZeroHop(req);
+-      discovery_req_time = millis();
+-      return true;
+-    }
+-    return false;
+-  }
+-
+-  void handleDiscoverResponse(const mesh::Packet* packet) {
+-    if (disc_nodes_count < DISCOVERED_NODES_TABLE_SIZE && memcmp(&packet->payload[2], &disc_node_req_tag, 4) == 0) {
+-      auto d = &discovered[disc_nodes_count++];
+-      memcpy(d->pubkey_prefix, &packet->payload[6], 8);
+-      d->type = packet->payload[0] & 0xF;
+-      d->snr_out = ((int8_t)packet->payload[1]) / 4.0;
+-      d->snr_in = radio_driver.getLastSNR();
+-      ContactInfo* c = the_mesh.lookupContactByPubKey(&packet->payload[6], 8);
+-      if (c != NULL) {
+-        strncpy(d->name, c->name, 32);
+-      } else {
+-        d->name[0] = 0;
+-      }
+-    }
+-  }
+-#endif
+-
+-  void poll() override {
+-    if (_shutdown_init && !_task->isButtonPressed()) {  // must wait for USR button to be released
+-      _task->shutdown();
+-    }
+-  }
+-
+-  int render(DisplayDriver& display) override {
+-    display.setColor(UIColor::title_bkg);
+-    display.fillRect(0, 0, display.width(), 12);
+-    char tmp[80];
+-    // node name
+-    display.setTextSize(1);
+-    display.setColor(UIColor::title_txt);
+-    char filtered_name[sizeof(_node_prefs->node_name)];
+-    display.translateUTF8ToBlocks(filtered_name, _node_prefs->node_name, sizeof(filtered_name));
+-    display.setCursor(0, 2);
+-    display.print(filtered_name);
+-
+-    // battery voltage
+-    renderBatteryIndicator(display, _task->getBattMilliVolts());
+-
+-    // curr page indicator
+-    if (UIColor::title_bkg == UIColor::window_bkg) {
+-      display.setColor(UIColor::title_txt);
+-    } else {
+-      display.setColor(UIColor::title_bkg);
+-    }
+-    int y = 14;
+-    int x = display.width() / 2 - 5 * (HomePage::Count-1);
+-    for (uint8_t i = 0; i < HomePage::Count; i++, x += 10) {
+-      if (i == _page) {
+-        display.fillRect(x-1, y-1, 4, 4);
+-      } else {
+-        display.fillRect(x, y, 2, 2);
+-      }
+-    }
+-
+-    if (_page == HomePage::FIRST) {
+-      display.setColor(UIColor::primary_txt);
+-      #ifdef ENABLE_WIFI_INTERFACE
+-      // smaller unread message ui for wifi variants
+-      display.setTextSize(1);
+-      sprintf(tmp, "Unread Msg: %d", _task->getMsgCount());
+-      display.drawTextCentered(display.width() / 2, 22, tmp);
+-      #else
+-      // larger unread message ui for non wifi variants
+-      display.setTextSize(2);
+-      sprintf(tmp, "MSG: %d", _task->getMsgCount());
+-      display.drawTextCentered(display.width() / 2, 22, tmp);
+-      #endif
+-      #ifdef UI_SHOW_CLOCK
+-      display.setTextSize(3);
+-      uint32_t now = _rtc->getCurrentTime();
+-      now += (int32_t)_node_prefs->tz_offset * 3600;
+-      DateTime dt (now);
+-      sprintf(tmp, "%02d:%02d", dt.hour(), dt.minute());
+-      display.drawTextCentered(display.width() / 2, 60, tmp);
+-      display.setTextSize(1);
+-      sprintf(tmp, "%02d/%02d/%d", dt.day(), dt.month(), dt.year());
+-      display.drawTextCentered(display.width() / 2, 80, tmp);
+-      #endif
+-      #ifdef ENABLE_WIFI_INTERFACE
+-        IPAddress ip = WiFi.localIP();
+-        snprintf(tmp, sizeof(tmp), "IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+-        display.setTextSize(1);
+-        display.drawTextCentered(display.width() / 2, 32, tmp);
+-      #endif
+-      if (_task->hasConnection()) {
+-        display.setColor(UIColor::warning_txt);
+-        display.setTextSize(1);
+-        #ifdef UI_SHOW_CLOCK
+-        display.drawTextCentered(display.width() / 2, 110, "< Connected >");
+-        #else
+-        display.drawTextCentered(display.width() / 2, 43, "< Connected >");
+-        #endif
+-      } else if (the_mesh.getBLEPin() != 0) { // BT pin
+-        display.setColor(UIColor::warning_txt);
+-        sprintf(tmp, "Pin:%d", the_mesh.getBLEPin());
+-        #ifdef UI_SHOW_CLOCK
+-        display.setTextSize(1);
+-        display.drawTextCentered(display.width() / 2, 110, tmp);
+-        #else
+-        display.setTextSize(2);
+-        display.drawTextCentered(display.width() / 2, 43, tmp);
+-        #endif
+-      }
+-    } else if (_page == HomePage::RECENT) {
+-      the_mesh.getRecentlyHeard(recent, UI_RECENT_LIST_SIZE);
+-      display.setColor(UIColor::primary_txt);
+-      int y = 20;
+-      for (int i = 0; i < UI_RECENT_LIST_SIZE; i++, y += 11) {
+-        auto a = &recent[i];
+-        if (a->name[0] == 0) continue;  // empty slot
+-        int secs = _rtc->getCurrentTime() - a->recv_timestamp;
+-        if (secs < 60) {
+-          sprintf(tmp, "%ds", secs);
+-        } else if (secs < 60*60) {
+-          sprintf(tmp, "%dm", secs / 60);
+-        } else {
+-          sprintf(tmp, "%dh", secs / (60*60));
+-        }
+-
+-        int timestamp_width = display.getTextWidth(tmp);
+-        int max_name_width = display.width() - timestamp_width - 1;
+-
+-        char filtered_recent_name[sizeof(a->name)];
+-        display.translateUTF8ToBlocks(filtered_recent_name, a->name, sizeof(filtered_recent_name));
+-        display.drawTextEllipsized(0, y, max_name_width, filtered_recent_name);
+-        display.setCursor(display.width() - timestamp_width - 1, y);
+-        display.print(tmp);
+-      }
+-    } else if (_page == HomePage::RADIO) {
+-      display.setColor(UIColor::primary_txt);
+-      display.setTextSize(1);
+-      // freq / sf
+-      display.setCursor(0, 20);
+-      sprintf(tmp, "FQ: %06.3f   SF: %d", _node_prefs->freq, _node_prefs->sf);
+-      display.print(tmp);
+-
+-      display.setCursor(0, 31);
+-      sprintf(tmp, "BW: %03.2f     CR: %d", _node_prefs->bw, _node_prefs->cr);
+-      display.print(tmp);
+-
+-      // tx power,  noise floor
+-      display.setCursor(0, 42);
+-      sprintf(tmp, "TX: %ddBm", _node_prefs->tx_power_dbm);
+-      display.print(tmp);
+-      display.setCursor(0, 53);
+-      sprintf(tmp, "Noise floor: %d", radio_driver.getNoiseFloor());
+-      display.print(tmp);
+-    } else if (_page == HomePage::BLUETOOTH) {
+-      display.setColor(UIColor::corp_blue);
+-      display.drawXbm((display.width() - 32) / 2, 18,
+-          _task->isBluetoothEnabled() ? bluetooth_on : bluetooth_off,
+-          32, 32);
+-      display.setColor(UIColor::secondary_txt);
+-      display.setTextSize(1);
+-      display.drawTextCentered(display.width() / 2, 64 - 11, "toggle: " PRESS_LABEL);
+-    } else if (_page == HomePage::ADVERT) {
+-      display.setColor(UIColor::corp_blue);
+-      display.drawXbm((display.width() - 32) / 2, 18, advert_icon, 32, 32);
+-      display.setColor(UIColor::secondary_txt);
+-      display.drawTextCentered(display.width() / 2, 64 - 11, "advert: " PRESS_LABEL);
+-#if ENV_INCLUDE_GPS == 1
+-    } else if (_page == HomePage::GPS) {
+-      LocationProvider* nmea = sensors.getLocationProvider();
+-      char buf[50];
+-      int y = 18;
+-      bool gps_state = _task->getGPSState();
+-#ifdef PIN_GPS_SWITCH
+-      bool hw_gps_state = digitalRead(PIN_GPS_SWITCH);
+-      if (gps_state != hw_gps_state) {
+-        strcpy(buf, gps_state ? "gps off(hw)" : "gps off(sw)");
+-      } else {
+-        strcpy(buf, gps_state ? "gps on" : "gps off");
+-      }
+-#else
+-      strcpy(buf, gps_state ? "gps on" : "gps off");
+-#endif
+-      display.setColor(UIColor::primary_txt);
+-      display.drawTextLeftAlign(0, y, buf);
+-      if (nmea == NULL) {
+-        y = y + 12;
+-        display.setColor(UIColor::secondary_txt);
+-        display.drawTextLeftAlign(0, y, "Can't access GPS");
+-      } else {
+-        display.setColor(UIColor::primary_txt);
+-        strcpy(buf, nmea->isValid()?"fix":"no fix");
+-        display.drawTextRightAlign(display.width()-1, y, buf);
+-        y = y + 12;
+-        display.setColor(UIColor::secondary_txt);
+-        display.drawTextLeftAlign(0, y, "sat");
+-        display.setColor(UIColor::primary_txt);
+-        sprintf(buf, "%d", nmea->satellitesCount());
+-        display.drawTextRightAlign(display.width()-1, y, buf);
+-        y = y + 12;
+-        display.setColor(UIColor::secondary_txt);
+-        display.drawTextLeftAlign(0, y, "pos");
+-        display.setColor(UIColor::primary_txt);
+-        sprintf(buf, "%.4f %.4f",
+-          nmea->getLatitude()/1000000., nmea->getLongitude()/1000000.);
+-        display.drawTextRightAlign(display.width()-1, y, buf);
+-        y = y + 12;
+-        display.setColor(UIColor::secondary_txt);
+-        display.drawTextLeftAlign(0, y, "alt");
+-        display.setColor(UIColor::primary_txt);
+-        sprintf(buf, "%.2f", nmea->getAltitude()/1000.);
+-        display.drawTextRightAlign(display.width()-1, y, buf);
+-        y = y + 12;
+-      }
+-#endif
+-#if UI_SENSORS_PAGE == 1
+-    } else if (_page == HomePage::SENSORS) {
+-      int y = 18;
+-      refresh_sensors();
+-      char buf[30];
+-      char name[30];
+-      LPPReader r(sensors_lpp.getBuffer(), sensors_lpp.getSize());
+-
+-      for (int i = 0; i < sensors_scroll_offset; i++) {
+-        uint8_t channel, type;
+-        r.readHeader(channel, type);
+-        r.skipData(type);
+-      }
+-
+-      for (int i = 0; i < (sensors_scroll?UI_RECENT_LIST_SIZE:sensors_nb); i++) {
+-        uint8_t channel, type;
+-        if (!r.readHeader(channel, type)) { // reached end, reset
+-          r.reset();
+-          r.readHeader(channel, type);
+-        }
+-
+-        display.setCursor(0, y);
+-        float v;
+-        switch (type) {
+-          case LPP_GPS: // GPS
+-            float lat, lon, alt;
+-            r.readGPS(lat, lon, alt);
+-            strcpy(name, "gps"); sprintf(buf, "%.4f %.4f", lat, lon);
+-            break;
+-          case LPP_VOLTAGE:
+-            r.readVoltage(v);
+-            strcpy(name, "voltage"); sprintf(buf, "%6.2f", v);
+-            break;
+-          case LPP_CURRENT:
+-            r.readCurrent(v);
+-            strcpy(name, "current"); sprintf(buf, "%.3f", v);
+-            break;
+-          case LPP_TEMPERATURE:
+-            r.readTemperature(v);
+-            strcpy(name, "temperature"); sprintf(buf, "%.2f", v);
+-            break;
+-          case LPP_RELATIVE_HUMIDITY:
+-            r.readRelativeHumidity(v);
+-            strcpy(name, "humidity"); sprintf(buf, "%.2f", v);
+-            break;
+-          case LPP_BAROMETRIC_PRESSURE:
+-            r.readPressure(v);
+-            strcpy(name, "pressure"); sprintf(buf, "%.2f", v);
+-            break;
+-          case LPP_ALTITUDE:
+-            r.readAltitude(v);
+-            strcpy(name, "altitude"); sprintf(buf, "%.0f", v);
+-            break;
+-          case LPP_POWER:
+-            r.readPower(v);
+-            strcpy(name, "power"); sprintf(buf, "%6.2f", v);
+-            break;
+-          default:
+-            r.skipData(type);
+-            strcpy(name, "unk"); sprintf(buf, "");
+-        }
+-        display.setCursor(0, y);
+-        display.setColor(UIColor::secondary_txt);
+-        display.print(name);
+-        display.setColor(UIColor::primary_txt);
+-        display.setCursor(
+-          display.width()-display.getTextWidth(buf)-1, y
+-        );
+-        display.print(buf);
+-        y = y + 12;
+-      }
+-      if (sensors_scroll) sensors_scroll_offset = (sensors_scroll_offset+1)%sensors_nb;
+-      else sensors_scroll_offset = 0;
+-#endif
+-#if UI_DISCOVER_SCREEN
+-    } else if (_page == HomePage::DISCOVERY) {
+-      int count = disc_nodes_count;
+-      display.setColor(UIColor::primary_txt);
+-      int y = 20;
+-      for (int i = 0; i < count; i++, y += 11) {
+-        char name[32];
+-        auto a = &discovered[i];
+-        if ((a->name[0] == 0) || !discovery_disp_names) {
+-          mesh::Utils::toHex(name, a->pubkey_prefix, 4);
+-        } else {
+-          strncpy(name, a->name, 32);
+-        }
+-        char filtered_name[sizeof(name)];
+-        char snr_s[12];
+-        if (strlen(name) <= 8) { // display snr_o
+-          sprintf(snr_s, "%02.1f>%02.1f", a->snr_out, a->snr_in);
+-        } else {
+-          sprintf(snr_s, "%02.1f", a->snr_in);
+-        }
+-        int snr_width = display.getTextWidth(snr_s);
+-        int max_name_width = display.width() - snr_width - 1;
+-        display.translateUTF8ToBlocks(filtered_name, name, sizeof(filtered_name));
+-        display.drawTextEllipsized(0, y, max_name_width, filtered_name);
+-        display.setCursor(display.width() - snr_width - 1, y);
+-        display.print(snr_s);
+-      }
+-      if (millis() < discovery_req_time + 5000) {
+-        return 1000; // more frequent updates just after req
+-      } else if (count < DISCOVERED_NODES_TABLE_SIZE -1) { // show only 5 sec after last disc
+-        y = 10 + 11 * DISCOVERED_NODES_TABLE_SIZE;
+-        display.drawTextCentered(display.width() / 2, y, "discover: " PRESS_LABEL);
+-      }
+-#endif
+-#ifndef UI_NO_HIBERNATE
+-    } else if (_page == HomePage::SHUTDOWN) {
+-      display.setColor(UIColor::corp_blue);
+-      display.setTextSize(1);
+-      if (_shutdown_init) {
+-        display.setColor(UIColor::warning_txt);
+-        display.drawTextCentered(display.width() / 2, 34, "hibernating...");
+-      } else {
+-        display.setColor(UIColor::secondary_txt);
+-        display.drawXbm((display.width() - 32) / 2, 18, power_icon, 32, 32);
+-        display.drawTextCentered(display.width() / 2, 64 - 11, "hibernate:" PRESS_LABEL);
+-      }
+-#endif
+-    }
+-    return 5000;   // next render after 5000 ms
+-  }
+-
+-  bool handleInput(char c) override {
+-    if (c == KEY_LEFT || c == KEY_PREV) {
+-      _page = (_page + HomePage::Count - 1) % HomePage::Count;
+-      return true;
+-    }
+-    if (c == KEY_NEXT || c == KEY_RIGHT) {
+-      _page = (_page + 1) % HomePage::Count;
+-      if (_page == HomePage::RECENT) {
+-        _task->showAlert("Recent adverts", 800);
+-      }
+-#if UI_DISCOVER_SCREEN
+-      if (_page == HomePage::DISCOVERY) {
+-        _task->showAlert("Repeater disc", 800);
+-      }
+-#endif
+-      return true;
+-    }
+-    if (c == KEY_ENTER && _page == HomePage::BLUETOOTH) {
+-      if (_task->isBluetoothEnabled()) {  // toggle Bluetooth on/off
+-        _task->disableBluetooth();
+-      } else {
+-        _task->enableBluetooth();
+-      }
+-      return true;
+-    }
+-    if (c == KEY_ENTER && _page == HomePage::ADVERT) {
+-      _task->notify(UIEventType::ack);
+-      if (the_mesh.advert()) {
+-        _task->showAlert("Advert sent!", 1000);
+-      } else {
+-        _task->showAlert("Advert failed..", 1000);
+-      }
+-      return true;
+-    }
+-#if ENV_INCLUDE_GPS == 1
+-    if (c == KEY_ENTER && _page == HomePage::GPS) {
+-      _task->toggleGPS();
+-      return true;
+-    }
+-#endif
+-#if UI_SENSORS_PAGE == 1
+-    if (c == KEY_ENTER && _page == HomePage::SENSORS) {
+-      _task->toggleGPS();
+-      next_sensors_refresh=0;
+-      return true;
+-    }
+-#endif
+-#if UI_DISCOVER_SCREEN
+-    if (c == KEY_ENTER && _page == HomePage::DISCOVERY) {
+-      if (millis() > discovery_req_time + 5000) { // rate limiter
+-        sendDiscoverRequest();
+-      }
+-      return true;
+-    }
+-    if (c == KEY_SELECT && _page == HomePage::DISCOVERY) {
+-      discovery_disp_names = !discovery_disp_names;
+-      return true;
+-    }
+-#endif
+-#ifndef UI_NO_HIBERNATE
+-    if (c == KEY_ENTER && _page == HomePage::SHUTDOWN) {
+-      _shutdown_init = true;  // need to wait for button to be released
+-      return true;
+-    }
+-#endif
+-    return false;
+-  }
+-};
+-
+-#ifndef UI_MSG_PREVIEW_SIZE
+-  #define UI_MSG_PREVIEW_SIZE 78
+-#endif
+-
+-class MsgPreviewScreen : public UIScreen {
+-  UITask* _task;
+-  mesh::RTCClock* _rtc;
+-
+-  struct MsgEntry {
+-    uint32_t timestamp;
+-    char origin[62];
+-    char msg[UI_MSG_PREVIEW_SIZE];
+-  };
+-  #define MAX_UNREAD_MSGS   32
+-  int num_unread;
+-  int head = MAX_UNREAD_MSGS - 1; // index of latest unread message
+-  MsgEntry unread[MAX_UNREAD_MSGS];
+-
+-public:
+-  MsgPreviewScreen(UITask* task, mesh::RTCClock* rtc) : _task(task), _rtc(rtc) { num_unread = 0; }
+-
+-  void addPreview(uint8_t path_len, const char* from_name, const char* msg) {
+-    head = (head + 1) % MAX_UNREAD_MSGS;
+-    if (num_unread < MAX_UNREAD_MSGS) num_unread++;
+-
+-    auto p = &unread[head];
+-    p->timestamp = _rtc->getCurrentTime();
+-    if (path_len == 0xFF) {
+-      sprintf(p->origin, "(D) %s:", from_name);
+-    } else {
+-      sprintf(p->origin, "(%d) %s:", (uint32_t) path_len, from_name);
+-    }
+-    StrHelper::strncpy(p->msg, msg, sizeof(p->msg));
+-  }
+-
+-  int render(DisplayDriver& display) override {
+-    char tmp[16];
+-    display.setCursor(0, 0);
+-    display.setTextSize(1);
+-    display.setColor(UIColor::corp_blue);
+-    sprintf(tmp, "Unread: %d", num_unread);
+-    display.print(tmp);
+-
+-    auto p = &unread[head];
+-
+-    int secs = _rtc->getCurrentTime() - p->timestamp;
+-    if (secs < 60) {
+-      sprintf(tmp, "%ds", secs);
+-    } else if (secs < 60*60) {
+-      sprintf(tmp, "%dm", secs / 60);
+-    } else {
+-      sprintf(tmp, "%dh", secs / (60*60));
+-    }
+-    display.setCursor(display.width() - display.getTextWidth(tmp) - 2, 0);
+-    display.print(tmp);
+-
+-    display.drawRect(0, 11, display.width(), 1);  // horiz line
+-
+-    display.setCursor(0, 14);
+-    display.setColor(UIColor::secondary_txt);
+-    char filtered_origin[sizeof(p->origin)];
+-    display.translateUTF8ToBlocks(filtered_origin, p->origin, sizeof(filtered_origin));
+-    display.print(filtered_origin);
+-
+-    display.setCursor(0, 25);
+-    display.setColor(UIColor::primary_txt);
+-    char filtered_msg[sizeof(p->msg)];
+-    display.translateUTF8ToBlocks(filtered_msg, p->msg, sizeof(filtered_msg));
+-    display.printWordWrap(filtered_msg, display.width());
+-
+-#if AUTO_OFF_MILLIS==0 // probably e-ink
+-    return 10000; // 10 s
+-#else
+-    return 1000;  // next render after 1000 ms
+-#endif
+-  }
+-
+-  bool handleInput(char c) override {
+-    if (c == KEY_NEXT || c == KEY_RIGHT) {
+-      head = (head + MAX_UNREAD_MSGS - 1) % MAX_UNREAD_MSGS;
+-      num_unread--;
+-      if (num_unread == 0) {
+-        _task->gotoHomeScreen();
+-      }
+-      return true;
+-    }
+-    if (c == KEY_ENTER) {
+-      num_unread = 0;  // clear unread queue
+-      _task->gotoHomeScreen();
+-      return true;
+-    }
+-    return false;
+-  }
+-};
++#include "FirmwareScreens.h"
+ 
+ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* node_prefs) {
+   _display = display;
+@@ -753,7 +89,11 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
+   ui_started_at = millis();
+   _alert_expiry = 0;
+ 
++  #if defined(MESHIS_BOARD)
++  splash = new SplashScreen(this,node_prefs);
++  #else
+   splash = new SplashScreen(this);
++  #endif
+   home = new HomeScreen(this, &rtc_clock, sensors, node_prefs);
+   msg_preview = new MsgPreviewScreen(this, &rtc_clock);
+   setCurrScreen(splash);
+@@ -796,6 +136,10 @@ switch(t){
+ void UITask::onMessageRecv(mesh::Packet *pkt, const ContactInfo &from, uint8_t txt_type, uint32_t sender_timestamp, const char* text) {
+   // we only want to show text messages on display, not cli data
+   if (!(txt_type == TXT_TYPE_PLAIN || txt_type == TXT_TYPE_SIGNED_PLAIN)) return;
++  messages.receive(from.name,text);nux.event(meshis::MeshiEvent::MessageReceived,millis());
++#if defined(MESHIS_V2)
++  quickTx.receive("DM",from.name,text,millis(),{true,false,false});
++#endif
+ 
+   uint8_t path_len = pkt->isRouteFlood() ? pkt->path_len : 0xFF;
+   ((MsgPreviewScreen *) msg_preview)->addPreview(path_len, from.name, text);
+@@ -817,6 +161,11 @@ void UITask::onMessageRecv(mesh::Packet *pkt, const ContactInfo &from, uint8_t t
+ }
+ 
+ void UITask::onChannelMessageRecv(mesh::Packet *pkt, ChannelDetails& channel_details, const char* text) {
++  messages.receive(channel_details.name,text);nux.event(meshis::MeshiEvent::MessageReceived,millis());
++#if defined(MESHIS_V2)
++  // Group encryption authenticates channel membership, not the textual sender.
++  quickTx.receive(channel_details.name,"GROUP (unverified)",text,millis());
++#endif
+   uint8_t path_len = pkt->isRouteFlood() ? pkt->path_len : 0xFF;
+   ((MsgPreviewScreen *) msg_preview)->addPreview(path_len, channel_details.name, text);
+   setCurrScreen(msg_preview);
+@@ -879,6 +228,9 @@ void UITask::userLedHandler() {
+ }
+ 
+ void UITask::setCurrScreen(UIScreen* c) {
++#if defined(MESHIS_V2)
++  if(curr && c!=curr && (meshis::keyLock().blocks() || quickTx.active()))return;
++#endif
+   curr = c;
+   _next_refresh = 100;
+ }
+@@ -921,8 +273,42 @@ bool UITask::isButtonPressed() const {
+ }
+ 
+ void UITask::loop() {
++  static uint32_t previousRx=0,previousTx=0,previousErrors=0,nextPower=0,nextBattery=0;
++  static bool previousBle=false;
++  const uint32_t now=millis();
++  const uint32_t rx=radio_driver.getPacketsRecv(),tx=radio_driver.getPacketsSent(),errors=radio_driver.getTxFailures();
++  if(rx!=previousRx) {nux.event(meshis::MeshiEvent::PacketReceived,now);_next_refresh=0;}
++  if(tx!=previousTx) {nux.event(meshis::MeshiEvent::PacketTransmitted,now);_next_refresh=0;}
++  if(errors!=previousErrors) {nux.error(2);_next_refresh=0;}
++  if(hasConnection()!=previousBle) {nux.event(hasConnection()?meshis::MeshiEvent::BluetoothConnected:meshis::MeshiEvent::BluetoothDisconnected,now);_next_refresh=0;}
++  previousRx=rx;previousTx=tx;previousErrors=errors;previousBle=hasConnection();
++  if(static_cast<int32_t>(now-nextPower)>=0) {
++    // GPIO-only charge observation; ADC sampled separately once every 8s.
++    const auto nextCharge=board.meshisChargeStatus();
++    if(nextCharge!=chargeStatus) {chargeStatus=nextCharge;nuxPowerDirty=true;}
++    if(chargeStatus==meshis::ChargeStatus::Invalid)nux.error(3);
++    else if(nux.errorCode()==3)nux.error(0);
++    nextPower=now+1000;
++  }
++  if(static_cast<int32_t>(now-nextBattery)>=0) {
++    nuxBatteryMv=getBattMilliVolts();nuxPowerDirty=true;nextBattery=now+8000;
++  }
++  if(nuxPowerDirty) {
++    nux.power(nuxBatteryMv>0 && nuxBatteryMv<3400,chargeStatus==meshis::ChargeStatus::Charging);
++    nuxPowerDirty=false;_next_refresh=0;
++  }
++
+   char c = 0;
+-#if UI_HAS_JOYSTICK
++#if defined(MESHIS_V2) && UI_HAS_JOYSTICK
++  MomentaryButton* buttons[]={&user_btn,&joystick_left,&joystick_right,&joystick_up,&joystick_down};
++  const uint8_t keys[]={KEY_ENTER,KEY_LEFT,KEY_RIGHT,KEY_UP,KEY_DOWN};
++  for(unsigned i=0;i<5;++i){
++    if(navigationDebounce[i].sample(buttons[i]->isPressed(),millis()))c=checkDisplayOn(static_cast<char>(keys[i]));
++    const int edge=buttons[i]->check();
++    if(i<3 && edge==BUTTON_EVENT_LONG_PRESS && !quickTx.active())c=handleLongPress(static_cast<char>(keys[i]));
++  }
++  if(menuDebounce.sample(back_btn.isPressed(),millis())){meshis::keyLock().menuPress(millis());checkDisplayOn(0);_next_refresh=0;}
++#elif UI_HAS_JOYSTICK
+   int ev = user_btn.check();
+   if (ev == BUTTON_EVENT_CLICK) {
+     c = checkDisplayOn(KEY_ENTER);
+@@ -941,10 +327,21 @@ void UITask::loop() {
+   } else if (ev == BUTTON_EVENT_LONG_PRESS) {
+     c = handleLongPress(KEY_RIGHT);
+   }
++  ev = joystick_up.check();
++  if(ev==BUTTON_EVENT_CLICK)c=checkDisplayOn(KEY_UP);
++  ev = joystick_down.check();
++  if(ev==BUTTON_EVENT_CLICK)c=checkDisplayOn(KEY_DOWN);
++#if defined(MESHIS_V2)
++  if(menuDebounce.sample(back_btn.isPressed(),millis())){
++    meshis::keyLock().menuPress(millis());checkDisplayOn(0);_next_refresh=0;
++  }
++#else
+   ev = back_btn.check();
++  if(ev==BUTTON_EVENT_CLICK)c=checkDisplayOn(KEY_CANCEL);
+   if (ev == BUTTON_EVENT_TRIPLE_CLICK) {
+     c = handleTripleClick(KEY_SELECT);
+   }
++#endif
+ #elif defined(PIN_USER_BTN)
+   int ev = user_btn.check();
+   #ifdef UI_HAS_NAV_INPUT
+@@ -1006,6 +403,14 @@ void UITask::loop() {
+   }
+ #endif
+ 
++#if defined(MESHIS_V2)
++  const bool wasOverlay=meshis::keyLock().overlay();
++  meshis::keyLock().poll(millis());
++  if(wasOverlay!=meshis::keyLock().overlay())_next_refresh=0;
++  for(unsigned n=meshis::keyLock().takeDeferredMenus();n;--n)if(curr){curr->handleInput(KEY_CANCEL);_next_refresh=0;}
++  quickTx.poll(messageMesh,millis());
++  c=static_cast<char>(meshis::keyLock().route(static_cast<uint8_t>(c),millis()));
++#endif
+   if (c != 0 && curr) {
+     curr->handleInput(c);
+     _auto_off = millis() + AUTO_OFF_MILLIS;   // extend auto-off timer
+@@ -1018,13 +423,38 @@ void UITask::loop() {
+   if (buzzer.isPlaying())  buzzer.loop();
+ #endif
+ 
++#if defined(MESHIS_V2)
++  if(curr && !meshis::keyLock().overlay())curr->poll();
++#else
+   if (curr) curr->poll();
++#endif
+ 
+   if (_display != NULL && _display->isOn()) {
+-    if (millis() >= _next_refresh && curr) {
++    if (millis() >= _next_refresh && curr && (curr!=home || meshis::paintAllowed(millis(),nuxLastFrame))) {
+       _display->startFrame();
+-      int delay_millis = curr->render(*_display);
+-      if (millis() < _alert_expiry) {  // render alert popup
++      int delay_millis;
++#if defined(MESHIS_V2)
++      if(meshis::keyLock().overlay()){
++#if defined(MESHIS_BOARD)
++        delay_millis=meshis::renderLock(*_display,meshis::keyLock(),_node_prefs->meshis_pet,millis());
++#else
++        // Classic LU Alert keeps its no-avatar identity, including the lock view.
++        _display->setColor(1);_display->setTextSize(1);
++        _display->drawTextCentered(64,0,meshis_brand::menuLabel());
++        const auto phase=meshis::keyLock().phase();
++        const bool opening=phase==meshis::KeyLock::Phase::Opening || phase==meshis::KeyLock::Phase::Joy;
++        meshis::pixelLock(*_display,59,22,opening?2:0);
++        _display->drawTextCentered(64,45,opening?"KEYS UNLOCKED":"KEYS LOCKED");
++        _display->drawTextCentered(64,56,"3x MENU TO UNLOCK");delay_millis=100;
++#endif
++      }else
++#endif
++      delay_millis = curr->render(*_display);
++      if (millis() < _alert_expiry
++#if defined(MESHIS_V2)
++          && !meshis::keyLock().overlay()
++#endif
++      ) {  // render alert popup
+         _display->setTextSize(1);
+         int y = _display->height() / 3;
+         int p = _display->height() / 32;
+@@ -1062,6 +492,7 @@ void UITask::loop() {
+ #ifdef AUTO_SHUTDOWN_MILLIVOLTS
+   if (millis() > next_batt_chck) {
+     uint16_t milliVolts = getBattMilliVolts();
++
+     if (milliVolts > 0 && milliVolts < AUTO_SHUTDOWN_MILLIVOLTS) {
+       if(!board.isExternalPowered()) {
+         if (_display != NULL) {
+@@ -1094,6 +525,9 @@ char UITask::checkDisplayOn(char c) {
+ }
+ 
+ char UITask::handleLongPress(char c) {
++#if defined(MESHIS_V2)
++  if(meshis::keyLock().blocks())return 0;
++#endif
+   if (millis() - ui_started_at < 8000) {   // long press in first 8 seconds since startup -> CLI/rescue
+     the_mesh.enterCLIRescue();
+     c = 0;   // consume event
+diff --git a/src/helpers/radiolib/RadioLibWrappers.cpp b/src/helpers/radiolib/RadioLibWrappers.cpp
+index e4d2ba1..68d07d2 100644
+--- a/src/helpers/radiolib/RadioLibWrappers.cpp
++++ b/src/helpers/radiolib/RadioLibWrappers.cpp
+@@ -170,6 +170,7 @@ bool RadioLibWrapper::startSendRaw(const uint8_t* bytes, int len) {
+     state = STATE_TX_WAIT;
+     return true;
+   }
++  ++tx_failures; // observational counter; existing failure path unchanged
+   MESH_DEBUG_PRINTLN("RadioLibWrapper: error: startTransmit(%d)", err);
+   idle();   // trigger another startRecv()
+   _board->onAfterTransmit();
+diff --git a/src/helpers/radiolib/RadioLibWrappers.h b/src/helpers/radiolib/RadioLibWrappers.h
+index 77dd931..21810e8 100644
+--- a/src/helpers/radiolib/RadioLibWrappers.h
++++ b/src/helpers/radiolib/RadioLibWrappers.h
+@@ -16,6 +16,7 @@ protected:
+   PhysicalLayer* _radio;
+   mesh::MainBoard* _board;
+   uint32_t n_recv, n_sent, n_recv_errors;
++  uint32_t tx_failures=0;
+   int16_t _noise_floor, _threshold;
+   bool _cad_enabled;
+   uint16_t _num_floor_samples;
+@@ -68,6 +69,7 @@ public:
+   uint32_t getPacketsRecv() const { return n_recv; }
+   uint32_t getPacketsRecvErrors() const { return n_recv_errors; }
+   uint32_t getPacketsSent() const { return n_sent; }
++  uint32_t getTxFailures() const { return tx_failures; }
+   void resetStats() { n_recv = n_sent = n_recv_errors = 0; }
+ 
+   virtual float getLastRSSI() const override;
+diff --git a/src/helpers/sensors/LocationProvider.h b/src/helpers/sensors/LocationProvider.h
+index bc4f1fe..dcb2351 100644
+--- a/src/helpers/sensors/LocationProvider.h
++++ b/src/helpers/sensors/LocationProvider.h
+@@ -17,6 +17,7 @@ public:
+     virtual long getAltitude() = 0;
+     virtual long satellitesCount() = 0;
+     virtual bool isValid() = 0;
++    virtual bool groundMotion(long& course,long& speed,uint32_t& age){course=-1;speed=-1;age=UINT32_MAX;return false;}
+     virtual long getTimestamp() = 0;
+     virtual void sendSentence(const char * sentence);
+     virtual bool waitFor(const char* prefix, uint32_t timeout_ms) { return false; }
+diff --git a/src/helpers/sensors/MicroNMEALocationProvider.h b/src/helpers/sensors/MicroNMEALocationProvider.h
+index 37ef576..63a6570 100644
+--- a/src/helpers/sensors/MicroNMEALocationProvider.h
++++ b/src/helpers/sensors/MicroNMEALocationProvider.h
+@@ -41,6 +41,9 @@
+ class MicroNMEALocationProvider : public LocationProvider {
+     char _nmeaBuffer[100];
+     MicroNMEA nmea;
++    // MESHIS_RMC_MOTION: refresh only from a newly parsed valid RMC.
++    bool _motion_seen=false;uint32_t _motion_ms=0;
++    long _motion_course=-1,_motion_speed=-1;
+     mesh::RTCClock* _clock;
+     Stream* _gps_serial;
+     RefCountedDigitalPin* _peripher_power;
+@@ -137,6 +140,7 @@ public :
+     }
+ 
+     void stop() override {
++        _motion_seen=false;_motion_course=-1;_motion_speed=-1;
+         _stop_calls++;
+         if (_pin_en != -1) {
+             digitalWrite(_pin_en, !GPS_EN_ACTIVE);
+@@ -167,6 +171,10 @@ public :
+     }
+     long satellitesCount() override { return nmea.getNumSatellites(); }
+     bool isValid() override { return nmea.isValid(); }
++    bool groundMotion(long& course,long& speed,uint32_t& age) override {
++      course=_motion_course;speed=_motion_speed;age=uint32_t(millis()-_motion_ms);
++      return _motion_seen && isEnabled() && isValid();
++    }
+ 
+     long getTimestamp() override { 
+         DateTime dt(nmea.getYear(), nmea.getMonth(),nmea.getDay(),nmea.getHour(),nmea.getMinute(),nmea.getSecond());
+@@ -209,6 +217,11 @@ public :
+             Serial.print(c);
+             #endif
+             bool parsed = nmea.process(c);
++            if(parsed && strcmp(nmea.getMessageID(),"RMC")==0){
++              _motion_seen=isValid();
++              if(_motion_seen){_motion_course=nmea.getCourse();_motion_speed=nmea.getSpeed();_motion_ms=millis();}
++              else {_motion_course=-1;_motion_speed=-1;}
++            }
+ 
+             // MicroNMEA leaves the completed sentence in its buffer after the
+             // first line terminator. CRLF therefore counts once: CR observes the
+diff --git a/src/helpers/ui/SH1106Display.cpp b/src/helpers/ui/SH1106Display.cpp
+index 8b91d85..c641a77 100644
+--- a/src/helpers/ui/SH1106Display.cpp
++++ b/src/helpers/ui/SH1106Display.cpp
+@@ -38,6 +38,7 @@ bool SH1106Display::begin()
+   // spi_dev NULL, and UITask::begin() calls turnOn() regardless of our
+   // return value, which then dereferences the null spi_dev.
+   bool ok = display.begin(addr ? addr : DISPLAY_ADDRESS, true);
++  bindFramebuffer(display.getBuffer());
+   return addr != 0 && ok;
+ }
+ 
+@@ -53,66 +54,14 @@ void SH1106Display::turnOff()
+   _isOn = false;
+ }
+ 
+-void SH1106Display::clear()
+-{
+-  display.clearDisplay();
+-  display.display();
+-}
+-
+-void SH1106Display::startFrame(ColorVal bkg)
+-{
+-  display.clearDisplay(); // TODO: apply 'bkg'
+-  _color = SH110X_WHITE;
+-  display.setTextColor(_color);
+-  display.setTextSize(1);
+-  display.cp437(true); // Use full 256 char 'Code Page 437' font
+-}
+-
+-void SH1106Display::setTextSize(int sz)
+-{
+-  display.setTextSize(sz);
+-}
+-
+-void SH1106Display::setColor(ColorVal c)
+-{
+-  _color = c;
+-  display.setTextColor(_color);
+-}
+-
+-void SH1106Display::setCursor(int x, int y)
+-{
+-  display.setCursor(x, y);
+-}
+-
+-void SH1106Display::print(const char *str)
+-{
+-  display.print(str);
+-}
+-
+-void SH1106Display::fillRect(int x, int y, int w, int h)
+-{
+-  display.fillRect(x, y, w, h, _color);
+-}
+-
+-void SH1106Display::drawRect(int x, int y, int w, int h)
+-{
+-  display.drawRect(x, y, w, h, _color);
+-}
+-
+-void SH1106Display::drawXbm(int x, int y, const uint8_t *bits, int w, int h)
+-{
+-  display.drawBitmap(x, y, bits, w, h, _color);
+-}
+-
+-uint16_t SH1106Display::getTextWidth(const char *str)
+-{
+-  int16_t x1, y1;
+-  uint16_t w, h;
+-  display.getTextBounds(str, 0, 0, &x1, &y1, &w, &h);
+-  return w;
+-}
+-
+-void SH1106Display::endFrame()
+-{
+-  display.display();
+-}
++void SH1106Display::clear() { FramebufferDisplay::clear(); display.flushFramebuffer(); }
++void SH1106Display::startFrame(ColorVal bkg) { FramebufferDisplay::startFrame(bkg); }
++void SH1106Display::setTextSize(int n) { FramebufferDisplay::setTextSize(n); }
++void SH1106Display::setColor(ColorVal c) { FramebufferDisplay::setColor(c); }
++void SH1106Display::setCursor(int x,int y) { FramebufferDisplay::setCursor(x,y); }
++void SH1106Display::print(const char* t) { FramebufferDisplay::print(t); }
++void SH1106Display::fillRect(int x,int y,int w,int h) { FramebufferDisplay::fillRect(x,y,w,h); }
++void SH1106Display::drawRect(int x,int y,int w,int h) { FramebufferDisplay::drawRect(x,y,w,h); }
++void SH1106Display::drawXbm(int x,int y,const uint8_t* p,int w,int h) { FramebufferDisplay::drawXbm(x,y,p,w,h); }
++uint16_t SH1106Display::getTextWidth(const char* t) { return FramebufferDisplay::getTextWidth(t); }
++void SH1106Display::endFrame() { display.flushFramebuffer(); }
+diff --git a/src/helpers/ui/SH1106Display.h b/src/helpers/ui/SH1106Display.h
+index 4e269d5..ae8ab20 100644
+--- a/src/helpers/ui/SH1106Display.h
++++ b/src/helpers/ui/SH1106Display.h
+@@ -1,10 +1,10 @@
+ #pragma once
+ 
+-#include "DisplayDriver.h"
++#include "FramebufferDisplay.h"
+ #include <Wire.h>
+ #include <Adafruit_GFX.h>
+ #define SH110X_NO_SPLASH
+-#include <Adafruit_SH110X.h>
++#include "SH1106Framebuffer.h"
+ 
+ #ifndef PIN_OLED_RESET
+ #define PIN_OLED_RESET -1
+@@ -14,16 +14,16 @@
+ #define DISPLAY_ADDRESS 0x3C
+ #endif
+ 
+-class SH1106Display : public DisplayDriver
++class SH1106Display : public FramebufferDisplay
+ {
+-  Adafruit_SH1106G display;
++  meshis::SH1106Framebuffer display;
+   bool _isOn;
+   uint8_t _color;
+ 
+   bool i2c_probe(TwoWire &wire, uint8_t addr);
+ 
+ public:
+-  SH1106Display() : DisplayDriver(128, 64), display(128, 64, &Wire, PIN_OLED_RESET) { _isOn = false; }
++  SH1106Display() : FramebufferDisplay(nullptr), display(128, 64, &Wire, PIN_OLED_RESET) { _isOn = false; }
+   bool begin();
+ 
+   bool isOn() override { return _isOn; }
+diff --git a/variants/wio-tracker-l1/WioTrackerL1Board.cpp b/variants/wio-tracker-l1/WioTrackerL1Board.cpp
+index 4153714..0e41615 100644
+--- a/variants/wio-tracker-l1/WioTrackerL1Board.cpp
++++ b/variants/wio-tracker-l1/WioTrackerL1Board.cpp
+@@ -6,6 +6,9 @@
+ void WioTrackerL1Board::begin() {
+   NRF52BoardDCDC::begin();
+   btn_prev_state = HIGH;
++  // Seeed L1 Pro schematic v1.3: CHRG P0.13, DONE P1.15. External pullups.
++  nrf_gpio_cfg_input(13,NRF_GPIO_PIN_NOPULL);
++  nrf_gpio_cfg_input(47,NRF_GPIO_PIN_NOPULL);
+ 
+   pinMode(PIN_VBAT_READ, INPUT); // VBAT ADC input
+   // Set all button pins to INPUT_PULLUP
+diff --git a/variants/wio-tracker-l1/WioTrackerL1Board.h b/variants/wio-tracker-l1/WioTrackerL1Board.h
+index 99e852b..c56cecf 100644
+--- a/variants/wio-tracker-l1/WioTrackerL1Board.h
++++ b/variants/wio-tracker-l1/WioTrackerL1Board.h
+@@ -2,6 +2,8 @@
+ 
+ #include <MeshCore.h>
+ #include <Arduino.h>
++#include <nrf_gpio.h>
++#include "../../examples/companion_radio/ui-new/Meshis.h"
+ #include <helpers/NRF52Board.h>
+ 
+ class WioTrackerL1Board : public NRF52BoardDCDC {
+@@ -11,6 +13,9 @@ protected:
+ public:
+   WioTrackerL1Board() : NRF52Board("WioTrackerL1_OTA") {}
+   void begin();
++  meshis::ChargeStatus meshisChargeStatus() const {
++    return meshis::decodeCharge(nrf_gpio_pin_read(13)!=0,nrf_gpio_pin_read(47)!=0);
++  }
+ 
+ #if defined(P_LORA_TX_LED)
+   void onBeforeTransmit() override {
+diff --git a/variants/wio-tracker-l1/platformio.ini b/variants/wio-tracker-l1/platformio.ini
+index 19139c2..24b51f0 100644
+--- a/variants/wio-tracker-l1/platformio.ini
++++ b/variants/wio-tracker-l1/platformio.ini
+@@ -24,7 +24,7 @@ build_src_filter = ${nrf52_base.build_src_filter}
+ lib_deps= ${nrf52_base.lib_deps}
+   ${sensor_base.lib_deps}
+   adafruit/Adafruit SH110X @ ^2.1.13
+-  adafruit/Adafruit GFX Library @ ^1.12.1
++  adafruit/Adafruit GFX Library @ 1.13.0
+ 
+ [env:WioTrackerL1_repeater]
+ extends = WioTrackerL1
+diff --git a/variants/wio-tracker-l1/target.cpp b/variants/wio-tracker-l1/target.cpp
+index 7a57325..93f25fd 100644
+--- a/variants/wio-tracker-l1/target.cpp
++++ b/variants/wio-tracker-l1/target.cpp
+@@ -38,3 +38,6 @@ mesh::LocalIdentity radio_new_identity() {
+   return mesh::LocalIdentity(&rng);  // create new random identity
+ }
+ 
++
++MomentaryButton joystick_up(JOYSTICK_UP,1000,true,false,false);
++MomentaryButton joystick_down(JOYSTICK_DOWN,1000,true,false,false);
+diff --git a/variants/wio-tracker-l1/target.h b/variants/wio-tracker-l1/target.h
+index 05bc7ff..e378c7a 100644
+--- a/variants/wio-tracker-l1/target.h
++++ b/variants/wio-tracker-l1/target.h
+@@ -33,3 +33,5 @@ extern EnvironmentSensorManager sensors;
+ bool radio_init();
+ mesh::LocalIdentity radio_new_identity();
+ 
++
++extern MomentaryButton joystick_up,joystick_down;

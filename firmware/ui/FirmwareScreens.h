@@ -1,25 +1,29 @@
 #pragma once
-// Shared actual MeshCore/Meshigotchi screen classes. Dependencies supplied by target adapter.
+// Shared actual MeshCore/Meshis screen classes. Dependencies supplied by target adapter.
 #include "Branding.h"
+#if defined(MESHIS_V2)
+#include "QuickTx.h"
+#include "GpsCourse.h"
+#endif
 class SplashScreen : public UIScreen {
   UITask* _task;
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(MESHIS_BOARD)
   NodePrefs* _splash_prefs;
 #endif
   unsigned long dismiss_after;
   char _version_info[12];
-#if defined(LU_ALERT_BRANDING) || defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(LU_ALERT_BRANDING) || defined(MESHIS_BOARD)
   uint32_t _logo_start = 0;
   bool _logo_started = false;
 #endif
 
 public:
   SplashScreen(UITask* task
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(MESHIS_BOARD)
     ,NodePrefs* prefs=nullptr
 #endif
   ) : _task(task)
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(MESHIS_BOARD)
     ,_splash_prefs(prefs)
 #endif
   {
@@ -37,16 +41,16 @@ public:
   }
 
   int render(DisplayDriver& display) override {
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(MESHIS_BOARD)
     if(!_logo_started){_logo_start=millis();_logo_started=true;}
     const uint32_t elapsed=static_cast<uint32_t>(millis()-_logo_start);
     display.setColor(1);display.setTextSize(1);display.drawTextCentered(64,0,"MESHIS");
-    meshigotchi_gotchi::sprite(display,_splash_prefs?meshigotchi_gotchi::valid(_splash_prefs->meshigotchi_pet):meshigotchi_gotchi::defaultPet,48,15+(elapsed/200)%2,2);
+    meshis_pets::sprite(display,_splash_prefs?meshis_pets::valid(_splash_prefs->meshis_pet):meshis_pets::defaultPet,48,15+(elapsed/200)%2,2);
     display.drawTextCentered(64,55,"MeshCore / Board");return 200;
 #elif defined(LU_ALERT_BRANDING)
     if (!_logo_started) { _logo_start = millis(); _logo_started = true; }
     const uint32_t elapsed = static_cast<uint32_t>(millis() - _logo_start);
-    meshigotchi_brand::render(display, elapsed >= 2500 ? 2500 : static_cast<uint16_t>(elapsed));
+    meshis_brand::render(display, elapsed >= 2500 ? 2500 : static_cast<uint16_t>(elapsed));
     return 100;
 #else
     // meshcore logo
@@ -76,7 +80,7 @@ public:
   }
 
   void poll() override {
-#if defined(LU_ALERT_BRANDING) || defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(LU_ALERT_BRANDING) || defined(MESHIS_BOARD)
     if (_logo_started && static_cast<uint32_t>(millis() - _logo_start) >= 2500) {
 #else
     if (millis() >= dismiss_after) {
@@ -90,11 +94,18 @@ class HomeScreen : public UIScreen {
   enum HomePage {
     FIRST,
     TIMEZONE,
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(MESHIS_BOARD)
     BOARD,
 #endif
-#if !defined(BRAND_CLASSIC_UI) || defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if !defined(BRAND_CLASSIC_UI) || defined(MESHIS_BOARD)
     ANIMATIONS,
+#endif
+#if defined(MESHIS_V2)
+    LIVE,
+    SOUND,
+#if ENV_INCLUDE_GPS == 1
+    COURSE,
+#endif
 #endif
     DIAGNOSTICS,
     MESSAGES,
@@ -123,20 +134,29 @@ class HomeScreen : public UIScreen {
   NodePrefs* _node_prefs;
   uint8_t _page;
   bool _shutdown_init;
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
-  uint8_t _gotchi_cursor=0;
+#if defined(MESHIS_BOARD)
+  uint8_t _meshi_cursor=0;
 #endif
 #if defined(BRAND_CLASSIC_UI)
   bool _classic_menu=false;
   uint8_t _classic_selection=0;
   static HomePage menuPage(unsigned index) {
     static const HomePage order[]={
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(MESHIS_V2)
+      MESSAGES,LIVE,
+#endif
+#if defined(MESHIS_BOARD)
       BOARD,ANIMATIONS,
 #endif
-      MESSAGES,RECENT,RADIO,BLUETOOTH,
+#if !defined(MESHIS_V2)
+      MESSAGES,
+#endif
+      RECENT,RADIO,BLUETOOTH,
 #if ENV_INCLUDE_GPS == 1
       GPS,
+#if defined(MESHIS_V2)
+      COURSE,
+#endif
 #endif
 #if UI_SENSORS_PAGE == 1
       SENSORS,
@@ -146,6 +166,9 @@ class HomeScreen : public UIScreen {
       DISCOVERY,
 #endif
       DIAGNOSTICS,TIMEZONE,
+#if defined(MESHIS_V2)
+      SOUND,
+#endif
 #ifndef UI_NO_HIBERNATE
       SHUTDOWN,
 #endif
@@ -195,7 +218,7 @@ class HomeScreen : public UIScreen {
 
     // while charging, show a bolt (or a plug once full) just left of the battery,
     // keeping the fill bar itself clean and uninterrupted
-    bool charging = chargeStatus == meshigotchi::ChargeStatus::Charging;
+    bool charging = chargeStatus == meshis::ChargeStatus::Charging;
     if (charging) {
       // There's no charge-complete signal on most boards, so "full" is a high
       // voltage band rather than an exact 100% (a real pack rarely reads 4.2V).
@@ -247,8 +270,8 @@ public:
 #if defined(BRAND_CLASSIC_UI)
   bool menuActive()const{return _classic_menu;}
   void selectPage(int index){if(index>=0 && index<Count){_page=index;_classic_menu=false;
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
-      _gotchi_cursor=meshigotchi_gotchi::valid(_node_prefs->meshigotchi_pet);
+#if defined(MESHIS_BOARD)
+      _meshi_cursor=meshis_pets::valid(_node_prefs->meshis_pet);
 #endif
     }}
 #endif
@@ -256,11 +279,17 @@ public:
   static const char* pageName(int page) {
     switch(page) {
       case FIRST:return "Home";case TIMEZONE:return "Timezone";
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(MESHIS_BOARD)
       case BOARD:return "Board";
 #endif
-#if !defined(BRAND_CLASSIC_UI) || defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if !defined(BRAND_CLASSIC_UI) || defined(MESHIS_BOARD)
       case ANIMATIONS:return "Animations";
+#endif
+#if defined(MESHIS_V2)
+      case LIVE:return "Live Radio / GPS";case SOUND:return "Sound";
+#if ENV_INCLUDE_GPS == 1
+      case COURSE:return "GPS Course";
+#endif
 #endif
       case DIAGNOSTICS:return "Diagnostics";case MESSAGES:return "Messages";case RECENT:return "Recent adverts";
       case RADIO:return "Radio";case BLUETOOTH:return "Bluetooth";case ADVERT:return "Advertise";
@@ -328,7 +357,7 @@ public:
 #if defined(BRAND_CLASSIC_UI)
     if(_classic_menu){
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
-      display.drawTextEllipsized(0,0,128,meshigotchi_brand::menuLabel());
+      display.drawTextEllipsized(0,0,128,meshis_brand::menuLabel());
       display.fillRect(0,10,128,1);
       const unsigned first=(_classic_selection/4)*4;
       for(unsigned row=0;row<4 && first+row<Count-1;++row){
@@ -338,23 +367,23 @@ public:
       return 1000;
     }
 #endif
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
-    if(_page==HomePage::BOARD){meshigotchi_gotchi::board(display,_gotchi_cursor,meshigotchi_gotchi::valid(_node_prefs->meshigotchi_pet));return 1000;}
+#if defined(MESHIS_BOARD)
+    if(_page==HomePage::BOARD){meshis_pets::board(display,_meshi_cursor,meshis_pets::valid(_node_prefs->meshis_pet));return 1000;}
     if(_page==HomePage::FIRST){
       display.setColor(1);display.setTextSize(1);display.drawTextEllipsized(0,0,84,"MESHIS");renderBatteryIndicator(display,nuxBatteryMv);
-      display.fillRect(0,11,128,1);const uint8_t pet=meshigotchi_gotchi::valid(_node_prefs->meshigotchi_pet);
-      meshigotchi_gotchi::draw(display,pet,nux,millis(),_node_prefs->meshigotchi_animations!=0);
-      display.drawTextEllipsized(50,22,76,meshigotchi_gotchi::name(pet));
-      display.drawTextEllipsized(50,34,56,meshigotchi_gotchi::stateName(nux.state(millis())));
+      display.fillRect(0,11,128,1);const uint8_t pet=meshis_pets::valid(_node_prefs->meshis_pet);
+      meshis_pets::draw(display,pet,nux,millis(),_node_prefs->meshis_animations!=0);
+      display.drawTextEllipsized(50,22,76,meshis_pets::name(pet));
+      display.drawTextEllipsized(50,34,56,meshis_pets::stateName(nux.state(millis())));
       char info[32];if(nux.errorCode())snprintf(info,sizeof(info),"E%03u",nux.errorCode());else snprintf(info,sizeof(info),"Enter: Menu");
       display.drawTextEllipsized(50,46,76,info);
       snprintf(info,sizeof(info),"R%lu T%lu B%c",(unsigned long)radio_driver.getPacketsRecv(),(unsigned long)radio_driver.getPacketsSent(),_task->hasConnection()?'+':'-');
-      display.drawTextEllipsized(0,56,128,info);return nux.interval(millis(),_node_prefs->meshigotchi_animations!=0);
+      display.drawTextEllipsized(0,56,128,info);return nux.interval(millis(),_node_prefs->meshis_animations!=0);
     }
 #endif
 #if defined(LU_ALERT_BRANDING)
     if (_page == HomePage::FIRST) {
-      meshigotchi_brand::render(display, 2500);
+      meshis_brand::render(display, 2500);
       return 1000;
     }
 #endif
@@ -365,8 +394,8 @@ public:
     display.setTextSize(1);
     display.setColor(UIColor::title_txt);
     char filtered_name[sizeof(_node_prefs->node_name)];
-#if defined(LU_ALERT_BRANDING) || defined(MESHIGOTCHI_GOTCHI_BOARD)
-    display.translateUTF8ToBlocks(filtered_name, meshigotchi_brand::menuLabel(), sizeof(filtered_name));
+#if defined(LU_ALERT_BRANDING) || defined(MESHIS_BOARD)
+    display.translateUTF8ToBlocks(filtered_name, meshis_brand::menuLabel(), sizeof(filtered_name));
 #else
     display.translateUTF8ToBlocks(filtered_name, _node_prefs->node_name, sizeof(filtered_name));
 #endif
@@ -396,12 +425,12 @@ public:
     if (_page == HomePage::FIRST) {
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
       const uint32_t utc = _rtc->getCurrentTime();
-      const DateTime dt(static_cast<uint32_t>(meshigotchi::localTime(utc, _node_prefs->meshigotchi_timezone == 1)));
+      const DateTime dt(static_cast<uint32_t>(meshis::localTime(utc, _node_prefs->meshis_timezone == 1)));
       if (utc < 1577836800UL) snprintf(tmp, sizeof(tmp), "Time not synced");
       else snprintf(tmp, sizeof(tmp), "%02d:%02d %02d/%02d/%04d", dt.hour(), dt.minute(), dt.day(), dt.month(), dt.year());
       display.setCursor(0,20);display.print(tmp);
-      meshigotchi::drawNux(display,nux,millis(),_node_prefs->meshigotchi_animations!=0);
-      display.setCursor(0,36);display.print(meshigotchi::stateLabel(nux.state(millis())));
+      meshis::drawNux(display,nux,millis(),_node_prefs->meshis_animations!=0);
+      display.setCursor(0,36);display.print(meshis::stateLabel(nux.state(millis())));
       if(nux.errorCode()) {
         snprintf(tmp,sizeof(tmp),"E%03u",nux.errorCode());display.setCursor(0,46);display.print(tmp);
       }
@@ -413,22 +442,47 @@ public:
           (unsigned long)(tx>99999?99999:tx),tx>99999?"+":"",_task->hasConnection()?'+':'-');
       }
       display.setCursor(0,55);display.print(tmp);
-      return nux.interval(millis(),_node_prefs->meshigotchi_animations!=0);
+      return nux.interval(millis(),_node_prefs->meshis_animations!=0);
     }
 #endif
     if (_page == HomePage::TIMEZONE) {
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
       display.setCursor(0,24);display.print("Timezone / Enter");
-      display.setCursor(0,40);display.print(_node_prefs->meshigotchi_timezone==1?"Europe/Luxembourg":"UTC");
-#if !defined(BRAND_CLASSIC_UI) || defined(MESHIGOTCHI_GOTCHI_BOARD)
+      display.setCursor(0,40);display.print(_node_prefs->meshis_timezone==1?"Europe/Luxembourg":"UTC");
+#if !defined(BRAND_CLASSIC_UI) || defined(MESHIS_BOARD)
     } else if (_page == HomePage::ANIMATIONS) {
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
       display.setCursor(0,24);display.print("Animations / Enter");
-      display.setCursor(0,40);display.print(_node_prefs->meshigotchi_animations?"On":"Off");
+      display.setCursor(0,40);display.print(_node_prefs->meshis_animations?"On":"Off");
+#endif
+#if defined(MESHIS_V2)
+    } else if(_page==HomePage::LIVE){
+      display.setColor(1);display.setTextSize(1);
+      if(_node_prefs->freq>0)snprintf(tmp,sizeof(tmp),"F %.3f MHz",_node_prefs->freq);else snprintf(tmp,sizeof(tmp),"F: not configured");
+      display.drawTextEllipsized(0,20,128,tmp);
+      snprintf(tmp,sizeof(tmp),"R%lu T%lu E%lu",(unsigned long)radio_driver.getPacketsRecv(),(unsigned long)radio_driver.getPacketsSent(),(unsigned long)radio_driver.getTxFailures());display.drawTextEllipsized(0,30,128,tmp);
+      if(radio_driver.getPacketsRecv())snprintf(tmp,sizeof(tmp),"RSSI %.0f SNR %.1f",radio_driver.getLastRSSI(),radio_driver.getLastSNR());else snprintf(tmp,sizeof(tmp),"Signal: no RX yet");display.drawTextEllipsized(0,40,128,tmp);
+      auto* gps=_sensors->getLocationProvider();snprintf(tmp,sizeof(tmp),"GPS %s BLE %c",!_task->getGPSState()?"OFF":gps && gps->isValid()?"FIX":"NO FIX",_task->hasConnection()?'+':'-');display.drawTextEllipsized(0,52,128,tmp);return 1000;
+    } else if(_page==HomePage::SOUND){
+      display.setColor(1);display.setTextSize(1);display.drawTextEllipsized(0,24,128,_task->isBuzzerQuiet()?"Summer: stumm":"Summer: aktiv");display.drawTextEllipsized(0,42,128,"Enter: umschalten");return 1000;
+#if ENV_INCLUDE_GPS == 1
+    } else if(_page==HomePage::COURSE){
+      display.setColor(1);display.setTextSize(1);display.drawTextEllipsized(0,20,128,"GPS COURSE (COG)");
+      auto* gps=_sensors->getLocationProvider();meshis::GroundMotion motion;
+      if(gps && !gps->groundMotion(motion.courseMilliDegrees,motion.speedMilliKnots,motion.ageMs))motion=meshis::GroundMotion{};
+      const auto state=meshis::courseState(_task->getGPSState(),gps && gps->isValid(),motion);
+      if(state==meshis::CourseState::Moving){snprintf(tmp,sizeof(tmp),"%03u deg %s",meshis::courseDegrees(motion),meshis::courseDirection(motion));display.drawTextEllipsized(0,32,128,tmp);snprintf(tmp,sizeof(tmp),"%.1f km/h",motion.speedMilliKnots*0.001852);display.drawTextEllipsized(0,43,128,tmp);}
+      else display.drawTextEllipsized(0,32,128,meshis::courseReason(state));
+      display.drawTextEllipsized(0,55,128,"Kein Magnetkompass");return 500;
+#endif
 #endif
     } else if (_page == HomePage::MESSAGES) {
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
+#if defined(MESHIS_V2)
+      if(quickTx.active())quickTx.render(display,messageMesh);
+#else
       if(messages.active())messages.render(display,messageMesh);
+#endif
       else {display.setCursor(0,24);display.print("Messages / Enter");display.setCursor(0,40);display.print("Inbox Channels People");}
     } else if (_page == HomePage::DIAGNOSTICS) {
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
@@ -438,9 +492,9 @@ public:
       if(radio_driver.getPacketsRecv())snprintf(tmp,sizeof(tmp),"RSSI %.0f SNR %.1f",radio_driver.getLastRSSI(),radio_driver.getLastSNR());
       else snprintf(tmp,sizeof(tmp),"No packets observed");
       display.setCursor(0,40);display.drawTextEllipsized(0,40,128,tmp);
-      const char* charge=chargeStatus==meshigotchi::ChargeStatus::Charging?"Charging":
-        chargeStatus==meshigotchi::ChargeStatus::Full?"Charge done":
-        chargeStatus==meshigotchi::ChargeStatus::Invalid?"Charge invalid":"Not charging";
+      const char* charge=chargeStatus==meshis::ChargeStatus::Charging?"Charging":
+        chargeStatus==meshis::ChargeStatus::Full?"Charge done":
+        chargeStatus==meshis::ChargeStatus::Invalid?"Charge invalid":"Not charging";
       display.setCursor(0,52);display.print(charge);
     } else if (_page == HomePage::RECENT) {
       the_mesh.getRecentlyHeard(recent, UI_RECENT_LIST_SIZE);
@@ -678,6 +732,9 @@ public:
       }
 #endif
     }
+#if defined(MESHIS_V2)
+    if(_page==HomePage::MESSAGES)return 100;
+#endif
     return 5000;   // next render after 5000 ms
   }
 
@@ -689,44 +746,60 @@ public:
       if(key==KEY_UP || key==KEY_LEFT || key==KEY_PREV)_classic_selection=(_classic_selection+Count-2)%(Count-1);
       else if(key==KEY_DOWN || key==KEY_RIGHT || key==KEY_NEXT)_classic_selection=(_classic_selection+1)%(Count-1);
       else if(key==KEY_ENTER || key==KEY_SELECT){_page=menuPage(_classic_selection);_classic_menu=false;
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
-        _gotchi_cursor=meshigotchi_gotchi::valid(_node_prefs->meshigotchi_pet);
+#if defined(MESHIS_BOARD)
+        _meshi_cursor=meshis_pets::valid(_node_prefs->meshis_pet);
 #endif
       }
       return true;
     }
 #endif
-#if defined(MESHIGOTCHI_GOTCHI_BOARD)
+#if defined(MESHIS_BOARD)
     if(_page==HomePage::BOARD){
       if(key==KEY_CANCEL || key==KEY_SELECT){_page=FIRST;_classic_menu=true;}
-      else if(key==KEY_LEFT || key==KEY_PREV)_gotchi_cursor=(_gotchi_cursor+meshigotchi_gotchi::count-1)%meshigotchi_gotchi::count;
-      else if(key==KEY_RIGHT || key==KEY_NEXT)_gotchi_cursor=(_gotchi_cursor+1)%meshigotchi_gotchi::count;
+      else if(key==KEY_LEFT || key==KEY_PREV)_meshi_cursor=(_meshi_cursor+meshis_pets::count-1)%meshis_pets::count;
+      else if(key==KEY_RIGHT || key==KEY_NEXT)_meshi_cursor=(_meshi_cursor+1)%meshis_pets::count;
       else if(key==KEY_UP || key==KEY_DOWN){
-        const uint8_t first=(_gotchi_cursor/meshigotchi_gotchi::boardPageSize)*meshigotchi_gotchi::boardPageSize;
-        const uint8_t slot=_gotchi_cursor-first,target=first+(slot<3?slot+3:slot-3);
-        if(target<meshigotchi_gotchi::count)_gotchi_cursor=target;
+        const uint8_t first=(_meshi_cursor/meshis_pets::boardPageSize)*meshis_pets::boardPageSize;
+        const uint8_t slot=_meshi_cursor-first,target=first+(slot<3?slot+3:slot-3);
+        if(target<meshis_pets::count)_meshi_cursor=target;
       }
-      else if(key==KEY_ENTER){_node_prefs->meshigotchi_pet=_gotchi_cursor;the_mesh.savePrefs();_page=FIRST;}
+      else if(key==KEY_ENTER){_node_prefs->meshis_pet=_meshi_cursor;the_mesh.savePrefs();_page=FIRST;}
       return true;
     }
 #endif
+#if defined(MESHIS_V2)
+    if(_page==HomePage::MESSAGES && quickTx.active()){quickTx.input(key,messageMesh,millis());return true;}
+    if(key==KEY_ENTER && _page==HomePage::SOUND){_task->toggleBuzzer();return true;}
+#else
     if(_page==HomePage::MESSAGES && messages.active()) {
-      if(key==KEY_LEFT || key==KEY_UP || key==KEY_PREV)messages.input(meshigotchi::Input::Previous,messageMesh);
-      else if(key==KEY_RIGHT || key==KEY_DOWN || key==KEY_NEXT)messages.input(meshigotchi::Input::Next,messageMesh);
-      else if(key==KEY_ENTER)messages.input(meshigotchi::Input::Enter,messageMesh);
-      else if(key==KEY_CANCEL || key==KEY_SELECT)messages.input(meshigotchi::Input::Back,messageMesh);
+      if(key==KEY_LEFT || key==KEY_UP || key==KEY_PREV)messages.input(meshis::Input::Previous,messageMesh);
+      else if(key==KEY_RIGHT || key==KEY_DOWN || key==KEY_NEXT)messages.input(meshis::Input::Next,messageMesh);
+      else if(key==KEY_ENTER)messages.input(meshis::Input::Enter,messageMesh);
+      else if(key==KEY_CANCEL || key==KEY_SELECT)messages.input(meshis::Input::Back,messageMesh);
       return true;
     }
+#endif
+
 #if defined(BRAND_CLASSIC_UI)
-    if(key==KEY_CANCEL){if(_page!=HomePage::FIRST)_classic_menu=true;_page=HomePage::FIRST;return true;}
+    if(key==KEY_CANCEL){
+#if defined(MESHIS_V2)
+      if(_page==HomePage::FIRST){_classic_menu=true;return true;}
+#endif
+      if(_page!=HomePage::FIRST)_classic_menu=true;_page=HomePage::FIRST;return true;}
     if(_page==HomePage::FIRST && (key==KEY_ENTER || key==KEY_SELECT || key==KEY_UP || key==KEY_DOWN)){_classic_menu=true;return true;}
 #else
     if(key==KEY_CANCEL) {_page=HomePage::FIRST;return true;}
 #endif
-    if(key==KEY_ENTER && _page==HomePage::MESSAGES) {messages.open();return true;}
-    if(key==KEY_ENTER && _page==HomePage::TIMEZONE) {_node_prefs->meshigotchi_timezone^=1;the_mesh.savePrefs();return true;}
-#if !defined(BRAND_CLASSIC_UI) || defined(MESHIGOTCHI_GOTCHI_BOARD)
-    if(key==KEY_ENTER && _page==HomePage::ANIMATIONS) {_node_prefs->meshigotchi_animations^=1;the_mesh.savePrefs();return true;}
+    if(key==KEY_ENTER && _page==HomePage::MESSAGES) {
+#if defined(MESHIS_V2)
+      quickTx.open();
+#else
+      messages.open();
+#endif
+      return true;}
+    if(key==KEY_ENTER && _page==HomePage::TIMEZONE) {_node_prefs->meshis_timezone^=1;the_mesh.savePrefs();return true;}
+#if !defined(BRAND_CLASSIC_UI) || defined(MESHIS_BOARD)
+    if(key==KEY_ENTER && _page==HomePage::ANIMATIONS) {_node_prefs->meshis_animations^=1;the_mesh.savePrefs();return true;}
 #endif
 
     if (c == KEY_LEFT || c == KEY_PREV) {

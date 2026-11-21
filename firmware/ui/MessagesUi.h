@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-namespace meshigotchi {
+namespace meshis {
 enum class Input { Previous, Next, Enter, Back };
 enum class MessagePage { Closed, Root, Inbox, Channels, Contacts, Confirm, Result };
 struct MessagePreview { char sender[22]; char text[85]; };

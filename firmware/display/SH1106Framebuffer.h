@@ -1,7 +1,7 @@
 #pragma once
 #include <Adafruit_SH110X.h>
 
-namespace meshigotchi {
+namespace meshis {
 // The shared renderer writes the existing buffer directly, bypassing
 // Adafruit_GrayOLED::drawPixel() and its dirty-window bookkeeping.
 // Each rendered frame replaces the full buffer, so invalidate the complete

@@ -1,9 +1,20 @@
 #pragma once
+#if defined(MESHIS_V2)
+#include "KeyLock.h"
+#include "QuickTx.h"
+#endif
 // Include after MyMesh.h. Only public BaseChatMesh APIs; no companion-frame injection.
 class MeshCoreMessages {
   ChannelDetails prepared_ = {};
   int preparedIndex_=-1;
 public:
+#if defined(MESHIS_V2)
+  bool prepareNamed(const char* name){
+    preparedIndex_=-1;unsigned matches=0;ChannelDetails ch;
+    for(int i=0;i<MAX_GROUP_CHANNELS;++i)if(the_mesh.getChannel(i,ch) && ch.name[0] && meshis::sameChannel(ch.name,name)){prepared_=ch;preparedIndex_=i;++matches;}
+    if(matches!=1){preparedIndex_=-1;return false;}return true;
+  }
+#endif
   unsigned channelCount() const {
     unsigned count=0;ChannelDetails ch;
     for(int i=0;i<MAX_GROUP_CHANNELS;++i) if(the_mesh.getChannel(i,ch) && ch.name[0])++count;
@@ -32,6 +43,11 @@ public:
     for(size_t i=0;out[i];++i)if(out[i]<32 || out[i]>126)out[i]='?';
   }
   bool sendPreparedChannel(const char* text) {
+#if defined(MESHIS_V2)
+    if(meshis::keyLock().blocks() || !text || !text[0])return false;
+    const size_t senderLength=strnlen(the_mesh.getNodeName(),32);
+    if(senderLength>=32 || senderLength+2+strlen(text)>MAX_TEXT_LEN)return false;
+#endif
     ChannelDetails current;
     if(preparedIndex_<0 || !the_mesh.getChannel(preparedIndex_,current) ||
       strncmp(current.name,prepared_.name,sizeof(current.name)) ||

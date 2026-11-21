@@ -27,7 +27,7 @@ static bool renderLayouts=false;
 @property(strong) NSWindow* window;
 @property(strong) OLEDView* oled;
 @property(strong) NSPopUpButton* pages;
-@property(strong) NSPopUpButton* gotchis;
+@property(strong) NSPopUpButton* meshis;
 @property(strong) NSPopUpButton* zoom;
 @property(strong) NSPopUpButton* rate;
 @property(strong) NSButton* grid;
@@ -71,8 +71,8 @@ static bool renderLayouts=false;
     if([self.preferences objectForKey:@"timezoneLux"])sim->setLuxembourg([self.preferences boolForKey:@"timezoneLux"]);
     if([self.preferences objectForKey:@"animations"])sim->setAnimations([self.preferences boolForKey:@"animations"]);
   }
-  if(!renderLayouts && Simulator::gotchiUi() && [self.preferences objectForKey:@"pet"])sim->selectGotchi((int)[self.preferences integerForKey:@"pet"]);
-  savedPet=sim->gotchi();savedLux=sim->luxembourg();savedAnim=sim->animations();
+  if(!renderLayouts && Simulator::meshiUi() && [self.preferences objectForKey:@"pet"])sim->selectMeshi((int)[self.preferences integerForKey:@"pet"]);
+  savedPet=sim->meshi();savedLux=sim->luxembourg();savedAnim=sim->animations();
   self.window=[[NSWindow alloc]initWithContentRect:NSMakeRect(40,40,MIN(1240,NSScreen.mainScreen.visibleFrame.size.width-60),MIN(840,NSScreen.mainScreen.visibleFrame.size.height-60)) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
   self.window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];self.window.contentMinSize=NSMakeSize(1000,700);self.window.title=@"MESHIS · OLED LAB — SIMULATION ONLY";self.window.delegate=self;
   NSTextField* title=[self label:@"MESHIS / OLED LAB"];title.font=[NSFont boldSystemFontOfSize:22];
@@ -91,7 +91,7 @@ static bool renderLayouts=false;
   self.pages=[[LabPopup alloc]initWithFrame:NSZeroRect pullsDown:NO];for(int i=0;i<Simulator::pageCount();++i)[self.pages addItemWithTitle:[NSString stringWithUTF8String:Simulator::pageName(i)]];
   self.pages.target=self;self.pages.action=@selector(pageChanged:);
   NSMutableArray<NSView*>* eventViews=[NSMutableArray array];
-  NSArray* events=@[@"Idle",@"RX-Paket",@"TX-Paket",@"Neue Nachricht",@"Bluetooth verbunden",@"Bluetooth getrennt",@"Akku niedrig",@"Akku lädt",@"Funkfehler",@"Keine Funkaktivität (+5 min)",@"Ereignisstatus normalisieren"];
+  NSArray* events=@[@"Idle",@"RX-Paket",@"TX-Paket",@"Neue Nachricht",@"Bluetooth verbunden",@"Bluetooth getrennt",@"Akku niedrig",@"Akku lädt",@"Funkfehler",@"Keine Funkaktivität (+5 min)",@"Ereignisstatus normalisieren",@"GPS-Kurs: Bewegung (SIM)",@"GPS-Kurs: Stillstand (SIM)",@"GPS-Kurs: veraltet (SIM)",@"GPS: kein Fix (SIM)",@"Bot RX Teil 1 (SIM)",@"Bot RX Teil 2 (SIM)",@"Public fehlt (SIM)",@"Demo-Kanaele wiederherstellen",@"TX-Fehler aktiv (SIM)",@"TX-Fehler aus (SIM)"];
   for(NSInteger i=0;i<events.count;++i)[eventViews addObject:[self button:events[i] action:@selector(eventPressed:) tag:i]];
   NSButton* up=[self button:@"↑" action:@selector(joystick:) tag:0xb5];
   NSButton* down=[self button:@"↓" action:@selector(joystick:) tag:0xb6];
@@ -110,11 +110,11 @@ static bool renderLayouts=false;
   [eventScroll.heightAnchor constraintGreaterThanOrEqualToConstant:80].active=YES;
   [eventScroll setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
   NSStackView* hardware=[self row:@[dpad,[self column:@[enter,back,reset]]]];
-  NSTextField* hint=[self label:@"ENTER = Joystick-Druck · Esc = Menü · ⌘R = RESET"];hint.font=[NSFont systemFontOfSize:10];
-  self.gotchis=[[LabPopup alloc]initWithFrame:NSZeroRect pullsDown:NO];for(int i=0;i<Simulator::gotchiCount();++i)[self.gotchis addItemWithTitle:[NSString stringWithFormat:@"%s · %s",Simulator::gotchiName(i),Simulator::gotchiDescription(i)]];
-  self.gotchis.target=self;self.gotchis.action=@selector(gotchiChanged:);self.gotchis.hidden=!Simulator::gotchiUi();
-  NSStackView* side=[self column:@[[self button:@"STARTANIMATION" action:@selector(replayBoot:) tag:0],self.gotchis,[self label:@"ANSICHT"],self.pages,[self label:@"TESTEREIGNISSE — SIMULIERT"],eventScroll,[self label:@"WIO L1 PRO · HARDWARETASTEN"],hardware,hint]];
-  side.detachesHiddenViews=YES;[self.gotchis.widthAnchor constraintEqualToAnchor:side.widthAnchor].active=YES;
+  NSTextField* hint=[self label:@"3× MENU / Esc: Sperre · ⌘R: RESET"];hint.font=[NSFont systemFontOfSize:10];
+  self.meshis=[[LabPopup alloc]initWithFrame:NSZeroRect pullsDown:NO];for(int i=0;i<Simulator::meshiCount();++i)[self.meshis addItemWithTitle:[NSString stringWithFormat:@"%s · %s",Simulator::meshiName(i),Simulator::meshiDescription(i)]];
+  self.meshis.target=self;self.meshis.action=@selector(meshiChanged:);self.meshis.hidden=!Simulator::meshiUi();
+  NSStackView* side=[self column:@[[self button:@"STARTANIMATION" action:@selector(replayBoot:) tag:0],self.meshis,[self label:@"ANSICHT"],self.pages,[self label:@"TESTEREIGNISSE — SIMULIERT"],eventScroll,[self label:@"WIO L1 PRO · HARDWARETASTEN"],hardware,hint]];
+  side.detachesHiddenViews=YES;[self.meshis.widthAnchor constraintEqualToAnchor:side.widthAnchor].active=YES;
   [side.widthAnchor constraintEqualToConstant:300].active=YES;
   [self.pages.widthAnchor constraintEqualToAnchor:side.widthAnchor].active=YES;
   [eventScroll.widthAnchor constraintEqualToAnchor:side.widthAnchor].active=YES;
@@ -149,7 +149,7 @@ static bool renderLayouts=false;
   }];
   NSMenu* menu=[[NSMenu alloc]init];NSMenuItem* menuRoot=[[NSMenuItem alloc]init];[menu addItem:menuRoot];NSMenu* appMenu=[[NSMenu alloc]init];
   [appMenu addItemWithTitle:@"RESET (Einstellungen erhalten)" action:@selector(hardwareReset:) keyEquivalent:@"r"].target=self;
-  [appMenu addItemWithTitle:Simulator::classicUi()?@"Beenden":@"Quit MESHIGOTCHI Simulator" action:@selector(terminate:) keyEquivalent:@"q"];menuRoot.submenu=appMenu;NSApp.mainMenu=menu;
+  [appMenu addItemWithTitle:Simulator::classicUi()?@"Beenden":@"Quit MESHIS Simulator" action:@selector(terminate:) keyEquivalent:@"q"];menuRoot.submenu=appMenu;NSApp.mainMenu=menu;
   if(Simulator::classicUi()){sim->showSplash();}
   lastTick=lastPaint=std::chrono::steady_clock::now();lastPixels.fill(255);[content layoutSubtreeIfNeeded];[self sync];
   if(renderLayouts){[self exportLayoutScreenshots];[NSApp terminate:nil];return;}
@@ -159,36 +159,36 @@ static bool renderLayouts=false;
 }
 -(void)exportLayoutScreenshots {
   if(Simulator::classicUi()){
-    NSString* directory=Simulator::gotchiUi()?@"build/native":[NSString stringWithFormat:@"build/three-brands/%s/native",Simulator::appSlug()];
+    NSString* directory=Simulator::meshiUi()?@"build/native":[NSString stringWithFormat:@"build/three-brands/%s/native",Simulator::appSlug()];
     std::filesystem::create_directories(directory.UTF8String);
     sim->advance(3000);[self sync];
-    if(Simulator::gotchiUi()){
-      if(self.gotchis.numberOfItems!=Simulator::gotchiCount() || self.gotchis.hidden){fprintf(stderr,"Gotchi native selector missing\n");exit(1);}
-      for(int pet=0;pet<Simulator::gotchiCount();++pet){[self.gotchis selectItemAtIndex:pet];[self gotchiChanged:self.gotchis];if(sim->gotchi()!=pet || sim->pageIndex()!=0){fprintf(stderr,"Native selector did not use Board confirmation\n");exit(1);}}
-      [self hardwareReset:nil];sim->advance(2500);if(sim->gotchi()!=Simulator::gotchiCount()-1 || sim->booting()){fprintf(stderr,"Native RESET lost pet selection\n");exit(1);}
-      [self.gotchis selectItemAtIndex:0];[self gotchiChanged:self.gotchis];
+    if(Simulator::meshiUi()){
+      if(self.meshis.numberOfItems!=Simulator::meshiCount() || self.meshis.hidden){fprintf(stderr,"Meshi native selector missing\n");exit(1);}
+      for(int pet=0;pet<Simulator::meshiCount();++pet){[self.meshis selectItemAtIndex:pet];[self meshiChanged:self.meshis];if(sim->meshi()!=pet || sim->pageIndex()!=0){fprintf(stderr,"Native selector did not use Board confirmation\n");exit(1);}}
+      [self hardwareReset:nil];sim->advance(2500);if(sim->meshi()!=Simulator::meshiCount()-1 || sim->booting()){fprintf(stderr,"Native RESET lost pet selection\n");exit(1);}
+      [self.meshis selectItemAtIndex:0];[self meshiChanged:self.meshis];
     }
-    for(int index=0;index<(Simulator::gotchiUi()?5:3);++index){
+    for(int index=0;index<(Simulator::meshiUi()?5:3);++index){
       [self.window setContentSize:index==0?NSMakeSize(1000,700):NSMakeSize(1240,840)];
-      if(Simulator::gotchiUi() && index>=2)sim->selectGotchi((index-2)*6);sim->goToPage(0);if(index>=2){sim->key(13);if(Simulator::gotchiUi())sim->key(13);}[self sync];[self.window.contentView layoutSubtreeIfNeeded];[self.window.contentView displayIfNeeded];
+      if(Simulator::meshiUi() && index>=2)sim->selectMeshi((index-2)*6);sim->goToPage(0);if(index>=2){for(int page=0;page<Simulator::pageCount();++page)if(!strcmp(Simulator::pageName(page),"Board"))sim->goToPage(page);}[self sync];[self.window.contentView layoutSubtreeIfNeeded];[self.window.contentView displayIfNeeded];
       NSView* view=self.window.contentView;NSBitmapImageRep* bitmap=[view bitmapImageRepForCachingDisplayInRect:view.bounds];[view cacheDisplayInRect:view.bounds toBitmapImageRep:bitmap];
       [[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}]writeToFile:[directory stringByAppendingPathComponent:[NSString stringWithFormat:@"layout-%d.png",index]] atomically:YES];
       auto fit=fitOLED((int)self.oled.bounds.size.width,(int)self.oled.bounds.size.height,(int)self.oled.requestedZoom);
       if(fit.x<0 || fit.y<0 || fit.x+fit.width>self.oled.bounds.size.width || fit.y+fit.height>self.oled.bounds.size.height || !self.clockRow.hidden || !self.clocks.hidden || !self.animate.hidden){fprintf(stderr,"Classic layout failed\n");exit(1);}
       for(NSButton* button in @[self.enterButton,self.resetButton])if(!NSContainsRect(view.bounds,[button convertRect:button.bounds toView:view])){fprintf(stderr,"Classic button clipped\n");exit(1);}
-      auto cleanText=[](NSString* text){if(Simulator::gotchiUi())return;NSString* lower=text.lowercaseString;if([lower containsString:@"meshigotchi"] || [lower containsString:@"nux"]){fprintf(stderr,"Unexpected visible legacy name\n");exit(1);}};
+      auto cleanText=[](NSString* text){if(Simulator::meshiUi())return;NSString* lower=text.lowercaseString;if([lower containsString:@"meshis"] || [lower containsString:@"nux"]){fprintf(stderr,"Unexpected visible legacy name\n");exit(1);}};
       cleanText(self.window.title);
       auto audit=[&](auto&& walk,NSView* current)->void{if(current.hidden)return;if([current isKindOfClass:NSTextField.class])cleanText(((NSTextField*)current).stringValue);if([current isKindOfClass:NSButton.class])cleanText(((NSButton*)current).title);for(NSView* child in current.subviews)walk(walk,child);};audit(audit,view);
     }
-    printf("PASS: %s native layouts, full OLED and hardware buttons, %s\n",Simulator::appName(),Simulator::gotchiUi()?"16-pet paged Board and selector":"clean brand title and no avatar/time controls");return;
+    printf("PASS: %s native layouts, full OLED and hardware buttons, %s\n",Simulator::appName(),Simulator::meshiUi()?"16-pet paged Board and selector":"clean brand title and no avatar/time controls");return;
   }
 }
 -(void)sync {
-  sim->render();if(Simulator::gotchiUi())[self.gotchis selectItemAtIndex:sim->gotchi()];[self.pages selectItemAtIndex:sim->pageIndex()];self.animate.state=sim->animations()?NSControlStateValueOn:NSControlStateValueOff;self.zone.selectedSegment=sim->luxembourg()?0:1;
+  sim->render();if(Simulator::meshiUi())[self.meshis selectItemAtIndex:sim->meshi()];[self.pages selectItemAtIndex:sim->pageIndex()];self.animate.state=sim->animations()?NSControlStateValueOn:NSControlStateValueOff;self.zone.selectedSegment=sim->luxembourg()?0:1;
   self.window.contentMinSize=NSMakeSize(1000,700);
   self.clockRow.hidden=YES;self.clocks.hidden=YES;
-  if(!renderLayouts && (savedLux!=sim->luxembourg() || savedAnim!=sim->animations() || savedPet!=sim->gotchi())){
-    [self.preferences setBool:sim->luxembourg() forKey:@"timezoneLux"];[self.preferences setBool:sim->animations() forKey:@"animations"];savedLux=sim->luxembourg();savedAnim=sim->animations();savedPet=sim->gotchi();if(Simulator::gotchiUi())[self.preferences setInteger:savedPet forKey:@"pet"];
+  if(!renderLayouts && (savedLux!=sim->luxembourg() || savedAnim!=sim->animations() || savedPet!=sim->meshi())){
+    [self.preferences setBool:sim->luxembourg() forKey:@"timezoneLux"];[self.preferences setBool:sim->animations() forKey:@"animations"];savedLux=sim->luxembourg();savedAnim=sim->animations();savedPet=sim->meshi();if(Simulator::meshiUi())[self.preferences setInteger:savedPet forKey:@"pet"];
   }
   self.status.stringValue=[NSString stringWithUTF8String:sim->status().c_str()];
   auto stamp=[](int64_t value){time_t t=value;tm date{};gmtime_r(&t,&date);char s[40];strftime(s,sizeof(s),"%Y-%m-%d %H:%M:%S",&date);return std::string(s);};
@@ -199,7 +199,7 @@ static bool renderLayouts=false;
 }
 -(void)windowDidResize:(NSNotification*)note{self.oled.needsDisplay=YES;[self sync];}
 -(void)tick:(NSTimer*)timer{auto now=std::chrono::steady_clock::now();auto ms=std::chrono::duration_cast<std::chrono::milliseconds>(now-lastTick).count();lastTick+=std::chrono::milliseconds(ms);if(self.paused.state!=NSControlStateValueOn)sim->advance((uint32_t)ms);if(std::chrono::duration<double>(now-lastPaint).count()>=1./simulatorHz((int)self.rate.indexOfSelectedItem)){lastPaint=now;[self sync];}}
--(void)gotchiChanged:(id)sender{sim->selectGotchi((int)self.gotchis.indexOfSelectedItem);[self sync];}
+-(void)meshiChanged:(id)sender{sim->selectMeshi((int)self.meshis.indexOfSelectedItem);[self sync];}
 -(void)pageChanged:(id)sender{sim->goToPage((int)self.pages.indexOfSelectedItem);[self sync];}
 -(void)eventPressed:(NSButton*)sender{sim->event(static_cast<Simulator::Event>(sender.tag));[self sync];}
 -(void)joystick:(NSButton*)sender{sim->key(static_cast<uint8_t>(sender.tag));[self sync];}
@@ -210,7 +210,7 @@ static bool renderLayouts=false;
 -(void)setTime:(id)sender{const char* value=self.utcInput.stringValue.UTF8String;char* end=nullptr;unsigned long long epoch=strtoull(value,&end,10);if(value[0] && end && !*end && epoch<=UINT32_MAX){sim->setUtc((uint32_t)epoch);[self.window makeFirstResponder:self.oled];[self sync];}else self.status.stringValue=@"SIMULATION: UTC-Epoch muss zwischen 0 und 4294967295 liegen.";}
 -(void)timePreset:(NSButton*)sender{self.utcInput.stringValue=[NSString stringWithFormat:@"%ld",(long)sender.tag];[self setTime:sender];}
 -(void)aux:(NSButton*)sender{sim->showPreview();[self sync];}
--(void)screenshot:(id)sender{NSSavePanel* panel=[NSSavePanel savePanel];panel.nameFieldStringValue=Simulator::classicUi()?[NSString stringWithFormat:@"%s-simulation.png",Simulator::appSlug()]:@"meshigotchi-simulation.png";[panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse result){if(result==NSModalResponseOK)writePng(model->buffer(),panel.URL.path.UTF8String,1);}];}
+-(void)screenshot:(id)sender{NSSavePanel* panel=[NSSavePanel savePanel];panel.nameFieldStringValue=Simulator::classicUi()?[NSString stringWithFormat:@"%s-simulation.png",Simulator::appSlug()]:@"meshis-simulation.png";[panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse result){if(result==NSModalResponseOK)writePng(model->buffer(),panel.URL.path.UTF8String,1);}];}
 -(BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)app{return YES;}
 -(void)applicationWillTerminate:(NSNotification*)note{[self.timer invalidate];if(self.monitor)[NSEvent removeMonitor:self.monitor];}
 @end

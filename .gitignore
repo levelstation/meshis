@@ -9,3 +9,5 @@ private/
 *.log
 *.key
 *.pem
+
+/upstream/

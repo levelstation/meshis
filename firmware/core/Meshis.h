@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
-namespace meshigotchi {
-enum class MeshigotchiEvent { Idle, PacketReceived, PacketTransmitted, MessageReceived, BluetoothConnected, BluetoothDisconnected, BatteryLow, Charging, RadioError };
+namespace meshis {
+enum class MeshiEvent { Idle, PacketReceived, PacketTransmitted, MessageReceived, BluetoothConnected, BluetoothDisconnected, BatteryLow, Charging, RadioError };
 enum class State { Idle, Rx, Tx, Message, Quiet, LowBattery, Charging, Bluetooth, Error };
 // Gregorian calendar, UTC input. No global timezone or RTC mutation.
 inline bool leap(int y) { return y%4==0 && (y%100!=0 || y%400==0); }
@@ -41,17 +41,17 @@ class Companion {
   }
 public:
   void reset(uint32_t now) { transient_=State::Idle;since_=lastActivity_=now;error_=0;low_=charging_=false; }
-  void event(MeshigotchiEvent e,uint32_t now) {
-    if(e==MeshigotchiEvent::BatteryLow) { low_=true;return; }
-    if(e==MeshigotchiEvent::Charging) { charging_=true;return; }
-    if(e==MeshigotchiEvent::RadioError) { error_=1;return; }
-    if(e==MeshigotchiEvent::Idle || e==MeshigotchiEvent::BluetoothDisconnected) return;
+  void event(MeshiEvent e,uint32_t now) {
+    if(e==MeshiEvent::BatteryLow) { low_=true;return; }
+    if(e==MeshiEvent::Charging) { charging_=true;return; }
+    if(e==MeshiEvent::RadioError) { error_=1;return; }
+    if(e==MeshiEvent::Idle || e==MeshiEvent::BluetoothDisconnected) return;
     State next=State::Idle;
     switch(e) {
-      case MeshigotchiEvent::PacketReceived: next=State::Rx;lastActivity_=now;break;
-      case MeshigotchiEvent::PacketTransmitted: next=State::Tx;lastActivity_=now;break;
-      case MeshigotchiEvent::MessageReceived: next=State::Message;lastActivity_=now;break;
-      case MeshigotchiEvent::BluetoothConnected: next=State::Bluetooth;break;
+      case MeshiEvent::PacketReceived: next=State::Rx;lastActivity_=now;break;
+      case MeshiEvent::PacketTransmitted: next=State::Tx;lastActivity_=now;break;
+      case MeshiEvent::MessageReceived: next=State::Message;lastActivity_=now;break;
+      case MeshiEvent::BluetoothConnected: next=State::Bluetooth;break;
       default:return;
     }
     // Do not hide a message behind a raw RX update from the same packet.

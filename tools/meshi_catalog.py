@@ -2,7 +2,7 @@
 from pathlib import Path
 import json
 ROOT=Path(__file__).resolve().parents[1]
-CATALOG=json.loads((ROOT/'assets/gotchi_board/catalog.json').read_text())
+CATALOG=json.loads((ROOT/'assets/meshi_board/catalog.json').read_text())
 PETS=CATALOG['pets']
 NEW_PETS=PETS[CATALOG['original_count']:]
 assert [p['id'] for p in PETS]==list(range(len(PETS)))

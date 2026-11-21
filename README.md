@@ -1,59 +1,74 @@
 # Meshis – kleine Begleiter fürs Mesh.
 
-Animierte Pixelbegleiter für den ursprünglichen **Seeed Studio Wio Tracker L1 Pro mit OLED** und einen nativen macOS-Simulator.
+**Meshis 2.0 · v0.2.0-alpha-rc1** entwickelt die bestehende Oberfläche für den ursprünglichen **Seeed Studio Wio Tracker L1 Pro mit OLED** weiter. Alle **16 Meshis**, darunter Einhorn und Eichhörnchen, bleiben erhalten.
 
-Die öffentliche Entwicklungsversion enthält **16 Meshis**, darunter Einhorn, Eichhörnchen, Katze, Fuchs, Eule und Roboter. Die Figuren reagieren auf simulierten Empfang, Versand, Nachrichten, Bluetooth-Verbindung, niedrigen Akku, Laden, Fehler und Ruhe.
+[Website und interaktive Galerie](https://meshis.nosrv.eu) · [Funktionen, Bedienung und vollständige Befehlstabelle](docs/MESHIS-2.md) · [Testbericht](TEST-REPORT.md)
 
-## Projektseite
+- Quick TX: Kanal, Nachricht, exakte Vorschau, ausdrücklich bestätigen.
+- Live RX: Nachrichten und längere Antwortfragmente im Display lesen und scrollen.
+- Dreimal MENU in 1,2 Sekunden: Der gewählte Meshi bewacht die gesperrten Tasten. Pixel-Schloss und freudiges Entsperren laufen ohne blockierende Wartezeit.
+- Live-Ansicht für Funkstatistik, Frequenz, BLE und GPS. GPS-Kurs erscheint nur bei frischen Bewegungsdaten.
+- Firmware und Mac-Simulator verwenden denselben Menü-, Renderer-, Nachrichten- und Sperrcode.
 
-Die statische Website liegt unter `docs/`. Sie enthält eine interaktive Galerie, Projektbeschreibung, Versionsstand und Hardwareinformationen. Keine externen Schrift- oder Analysedienste. Galerie-Frames werden mit dem gemeinsamen C++-Firmware-Renderer erzeugt; es handelt sich nicht um eine zweite HTML-Implementierung der Firmwaremenüs.
-
-GitHub Pages kann später unter **Settings → Pages → Deploy from a branch → main → /docs** eingerichtet werden. Die Sichtbarkeit des Repositorys wird nicht automatisch geändert.
-
-## Versionsstand
-
-**v0.1.0-alpha**, Entwicklungsversion. Der Simulator und seine Softwaretests sind lauffähig. Hardware, Funk, BLE, Display und Bootloader-Kompatibilität sind **nicht physisch validiert**. Es wird keine freigegebene Gerätefirmware angeboten. Die Website und der Simulator verbinden sich nicht mit einem Gerät und flashen nichts.
+Die bekannten Bot-Menüs enthalten `meteo`; nicht bestätigte Wunschtexte sind gekennzeichnet. RAD und Warnungen sind ohne nachgewiesene Befehlssyntax gegen Versand gesperrt. Gruppenmeldungen werden nicht allein aufgrund eines Namenspräfixes als Bot-Antwort ausgegeben. Einzelheiten stehen im [Funktionsbericht](docs/MESHIS-2.md).
 
 ## Simulator auf macOS
 
-Apple Silicon, macOS 14 oder neuer, Apple Command Line Tools. Grafikbibliothek und benötigte öffentliche MeshCore-UI-Header liegen mit ihren Lizenzen im Repository. Kein Paketmanager oder Geräteanschluss nötig.
+Apple Silicon, macOS 14 oder neuer, Apple Command Line Tools. Die benötigten Grafik- und UI-Quellen liegen mit ihren Lizenzen im Repository.
 
 ```sh
 sh simulator/build.sh
 ./meshis-simulator
-./meshis-simulator --self-test build/screenshots
-./meshis-simulator --layout-screenshots
 ```
 
-Danach liegt die App unter `simulator/dist/Meshis Simulator.app`. Die lokale Signatur ist ad hoc, die App ist nicht notarisiert. Der öffentliche Simulator hat einen eigenen lokalen Demo-Einstellungsbereich.
+App: `simulator/dist/Meshis Simulator.app`. Ad-hoc signiert, nicht bei Apple notarisiert. Der Simulator öffnet keine Geräteschnittstelle und sendet keine echten Funkpakete. Testereignisse rechts simulieren unter anderem RX, Bot-Fragmente, TX-Fehler sowie bewegte, stehende und veraltete GPS-Daten. Fehlende Kanäle und umsortierte Kanalpositionen sind in den Tests enthalten.
 
-Pfeile = Joystick, Enter = auswählen, Escape = zurück, Cmd+R = normaler Reset. Home → Enter → Board öffnet die Figurenauswahl auf drei Seiten. Reset erhält die Demo-Auswahl, Zeitzone und Animationseinstellung. Ein Funkereignis verändert nur lokale Mocks.
-
-## Gemeinsamer Code
-
-`firmware/core/`, `firmware/ui/` und `firmware/display/` enthalten die gemeinsame Zustandsmaschine, Bildschirm-/Menüklassen und Rasterung. Die öffentliche App verwendet diese bestehenden Komponenten. Funkprotokolle werden nicht neu implementiert. `MeshCoreMessages.h` verwendet die vorhandenen öffentlichen MeshCore-Schnittstellen und liest eine spätere Nutzerkonfiguration nur zur Laufzeit auf dem jeweiligen Gerät.
-
-Die vollständige boardabhängige Firmware-Build-/Releaseintegration und öffentliche DFU-Downloads sind noch in Vorbereitung. Die Header sind keine alleinstehende flashbare Firmware.
-
-## Eigene Pixelgrafiken
-
-Der Katalog unter `assets/gotchi_board/catalog.json` erzeugt den gemeinsamen Header. Figurenindizes sind technische Katalogpositionen, keine Gerätekennungen.
+Pfeile = Joystick, Enter = Joystick-Druck, Escape = MENU. **3× Escape oder MENU in 1200 ms** sperrt/entsperrt. Ein einzelner MENU-Klick wird bis zum Ende des Zeitfensters zurückgehalten. Cmd+R führt einen normalen Simulationsreset aus und erhält die gespeicherten Demo-Einstellungen. Das Board-Menü enthält alle 16 Figuren auf drei Seiten.
 
 ```sh
-python3 tools/generate_gotchi_catalog.py --check
+./meshis-simulator --self-test build/screenshots
+./meshis-simulator --layout-screenshots
+SIM_SANITIZE=1 sh simulator/build.sh
+./build/meshis-simulator-asan --self-test build/asan
+```
+
+Die unveränderten bisherigen 733 Pixelreferenzen bleiben über den Regression-Build ausführbar:
+
+```sh
+MESHIS_LEGACY_UI=1 sh simulator/build.sh
+./meshis-simulator --self-test build/legacy
+sh simulator/build.sh
+```
+
+## Firmware bauen, ohne Flashen
+
+Die Integration basiert auf MeshCore-Commit `75b04ef06def54b348400cb1b138afb6749ffd4f`. Das Setup prüft diesen Commit, wendet den veröffentlichten Patch an und kopiert dieselben Header wie der Simulator. Bestehende abweichende Quellcodeänderungen werden nicht per Reset gelöscht.
+
+In einer eigenen Python-Umgebung PlatformIO **6.1.19** und `pyelftools` installieren, dann:
+
+```sh
+sh tools/build_firmware.sh
+```
+
+Ergebnis unter `build/firmware`: Anwendungs-BIN, UF2, echte DFU-ZIP mit Manifest, Prüfsummen und Layoutprüfung. Das Skript besitzt keinen Upload-Schritt. Ziel ist der ursprüngliche OLED-L1-Pro mit S140 7.3.0. Abhängigkeiten des gepinnten Upstream-Projekts enthalten teilweise Versionsbereiche; ein bitidentischer Build aus einer frisch heruntergeladenen Toolchain wird nicht zugesichert.
+
+Gerät, Funk, BLE, Display und Bootloader der bisherigen Firmware wurden am 21.11.2026 vom Nutzer bestätigt. Die neue 2.0-Anwendung ist separat zu prüfen; der Agent hat kein Gerät geflasht, gelöscht oder umkonfiguriert. Die Website stellt keine Geräteverbindung her.
+
+## Gemeinsamer Code und Grafiken
+
+`firmware/core/`, `firmware/ui/` und `firmware/display/` enthalten Zustandsmaschinen, Menüs, Pixelgrafiken und Framebuffer. Kanalzuordnung und Versand verwenden die vorhandenen öffentlichen MeshCore-Schnittstellen; Funk- und Companion-Protokoll bleiben erhalten. Die kanonischen Namen heißen Meshi/Meshis, etwa `MeshiRenderer.h`, `MeshiSprites.h` und `assets/meshi_board/catalog.json`. Historische Git-Commits bleiben als Historie erhalten.
+
+```sh
+python3 tools/generate_meshi_catalog.py --check
 sh tools/render-gallery.sh
 ```
 
-Die 16 Bitmaps benötigen zusammen 512 Byte; Augenpositionen weitere 40 Byte. Der OLED-Framebuffer bleibt 128 × 64 Pixel, 1 Bit, 1024 Byte. Die Bilddarstellung arbeitet ohne blockierende Animationspausen.
+Die 16 Figuren benötigen zusammen 512 Bitmap-Bytes. Die Website verwendet daraus erzeugte SVG-Frames; sie implementiert keine zweite Firmware-Menüsteuerung. Die Sperranimation auf der Website stammt aus echten Simulator-Framebuffer-Fixtures. Das statische Websiteverzeichnis ist `docs/`; das aktuelle Hosting liegt bei ChatGPT Sites.
 
-## Datenschutz
+## Datenschutz und Quellen
 
-Diese öffentliche Dateiauswahl enthält keine privaten Geräteprofile, persönlichen Funkwerte, Kontakte, Kanaldateien, Standortdaten oder alten Build-Logs. Simulatornamen und Kanäle sind ausdrücklich DEMO-Platzhalter; Funkwerte sind nicht konfiguriert, GNSS hat keinen Fix. Nutzer richten ihre eigenen Geräte separat und privat ein.
+Keine privaten Geräteprofile, persönlichen IP-Adressen, Gerätekennungen, Kontakte, Kanalschlüssel, Standorte oder alten Build-Logs werden veröffentlicht. Die vier Quick-TX-Kanalnamen und der Bot-Name sind ausdrücklich vorgegebene Funktionsbeispiele; sie sind keine exportierte Tracker-Konfiguration. Simulatorwerte sind lokale Demodaten. Tatsächliche Funkkonfiguration und GPS-Position werden erst auf dem jeweiligen Gerät zur Laufzeit gelesen. [Datenschutz](PRIVACY.md).
 
-Der Repository-Link ist eine ausdrücklich angegebene öffentliche Projektadresse. GitHub zeigt das zugehörige Konto an; Account- und Commit-Metadaten werden vom Hosting-Anbieter verwaltet. Verbindliche Lizenzhinweise von Drittanbietern bleiben erhalten. Siehe [Datenschutz und Veröffentlichung](PRIVACY.md).
+[Offizielle Seeed-Dokumentation](https://wiki.seeedstudio.com/wio_tracker_l1_node/): 1,3-Zoll-OLED mit 128 × 64 Pixeln, nRF52840, SX1262, Bluetooth, L76K und eingebautem Akku. Ein Magnetometer ist dort nicht ausgewiesen; GPS-Bewegungskurs ist kein Magnetkompass. E-Ink und Pro 1W sind eigene Hardwarevarianten. Der tatsächlich verbaute OLED-Controller ist im Projekt weiterhin nicht anhand einer individuellen Panelkennzeichnung nachgewiesen.
 
-## Hardwarequelle und Lizenzen
-
-[Seeed Studio: Wio Tracker L1](https://wiki.seeedstudio.com/wio_tracker_l1_node/): ursprünglicher Pro mit 1,3-Zoll-OLED, 128 × 64 Pixel, nRF52840, SX1262, Bluetooth 5.0, L76K und eingebautem 2.000-mAh-Akku. E-Ink und Pro 1W sind keine bestätigten Ziele. Der tatsächlich verbaute Displaycontroller bleibt in diesem Projekt ungeklärt.
-
-MeshCore-UI-Basis: Commit `75b04ef06def54b348400cb1b138afb6749ffd4f`, MIT; siehe `LICENSE` und `vendor/meshcore/LICENSE`. Adafruit GFX 1.13.0: BSD-Lizenz unter `simulator/vendor/adafruit-gfx/license.txt`. Meshis ist ein unabhängiges Community-Projekt und keine offizielle Seeed-Firmware.
+MeshCore: MIT, siehe `LICENSE` und `vendor/meshcore/LICENSE`. Adafruit GFX: BSD, siehe `simulator/vendor/adafruit-gfx/license.txt`. Unabhängiges Community-Projekt, keine offizielle Seeed-Firmware.

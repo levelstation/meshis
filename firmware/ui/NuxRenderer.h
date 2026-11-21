@@ -1,6 +1,6 @@
 #pragma once
-#include "Meshigotchi.h"
-namespace meshigotchi {
+#include "Meshis.h"
+namespace meshis {
 inline const char* stateLabel(State s) {
   switch(s) {
     case State::Rx: return "RX"; case State::Tx:return "TX";
