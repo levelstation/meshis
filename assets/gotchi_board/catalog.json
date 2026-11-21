@@ -1,0 +1,452 @@
+{
+  "schema": 1,
+  "width": 16,
+  "height": 16,
+  "original_count": 6,
+  "pets": [
+    {
+      "id": 0,
+      "slug": "nux",
+      "name": "NUX",
+      "description": "Katze",
+      "rows": [
+        "300c",
+        "381c",
+        "3c3c",
+        "3ffc",
+        "7ffe",
+        "7ffe",
+        "73ce",
+        "73ce",
+        "7ffe",
+        "3e7c",
+        "1ff8",
+        "07e0",
+        "0ff3",
+        "0ff3",
+        "0e7f",
+        "1e7c"
+      ]
+    },
+    {
+      "id": 1,
+      "slug": "foxy",
+      "name": "FOXY",
+      "description": "Fuchs",
+      "rows": [
+        "700e",
+        "781e",
+        "7c3e",
+        "3ffc",
+        "3ffc",
+        "33cc",
+        "33cc",
+        "1ff8",
+        "0e70",
+        "07e0",
+        "03c3",
+        "07e7",
+        "0ffe",
+        "0ffc",
+        "0e70",
+        "1e78"
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "owl",
+      "name": "OWL",
+      "description": "Eule",
+      "rows": [
+        "300c",
+        "781e",
+        "7ffe",
+        "ffff",
+        "e187",
+        "cc33",
+        "cc33",
+        "e187",
+        "7e7e",
+        "7e7e",
+        "3ffc",
+        "37ec",
+        "3bdc",
+        "1ff8",
+        "0c30",
+        "1e78"
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "byte",
+      "name": "BYTE",
+      "description": "Roboter",
+      "rows": [
+        "0180",
+        "07e0",
+        "1ff8",
+        "3ffc",
+        "300c",
+        "366c",
+        "366c",
+        "300c",
+        "3ffc",
+        "07e0",
+        "3ffc",
+        "eff7",
+        "cdb3",
+        "0ff0",
+        "0e70",
+        "1e78"
+      ]
+    },
+    {
+      "id": 4,
+      "slug": "axo",
+      "name": "AXO",
+      "description": "Axolotl",
+      "rows": [
+        "c003",
+        "6006",
+        "300c",
+        "dffb",
+        "7ffe",
+        "ffff",
+        "33cc",
+        "f3cf",
+        "7ffe",
+        "de7b",
+        "1ff8",
+        "07e0",
+        "0ff3",
+        "1ffb",
+        "1c3f",
+        "3c3c"
+      ]
+    },
+    {
+      "id": 5,
+      "slug": "leo",
+      "name": "LEO",
+      "description": "Löwe",
+      "rows": [
+        "0c30",
+        "3ffc",
+        "1ff8",
+        "3ffc",
+        "7ffe",
+        "e7e7",
+        "e7e7",
+        "ffff",
+        "f81f",
+        "7dbe",
+        "3ffc",
+        "1ff8",
+        "07e3",
+        "0ff3",
+        "0e7f",
+        "1e7c"
+      ]
+    },
+    {
+      "id": 6,
+      "slug": "uni",
+      "name": "UNI",
+      "description": "Einhorn",
+      "eyes": [
+        5,
+        6,
+        9,
+        6
+      ],
+      "rows": [
+        "0180",
+        "0380",
+        "0300",
+        "3318",
+        "3fbc",
+        "1ff8",
+        "1998",
+        "1998",
+        "1ff8",
+        "0e70",
+        "07e0",
+        "0ff0",
+        "1ffb",
+        "1ffb",
+        "1c3f",
+        "3c3c"
+      ]
+    },
+    {
+      "id": 7,
+      "slug": "chip",
+      "name": "CHIP",
+      "description": "Eichhörnchen",
+      "eyes": [
+        3,
+        6,
+        7,
+        6
+      ],
+      "rows": [
+        "001c",
+        "003c",
+        "337e",
+        "3f66",
+        "7fe7",
+        "7fe7",
+        "6667",
+        "6667",
+        "3fe7",
+        "19e6",
+        "1ffc",
+        "0ff8",
+        "1ff8",
+        "19f8",
+        "1cf8",
+        "3cf0"
+      ]
+    },
+    {
+      "id": 8,
+      "slug": "bun",
+      "name": "BUN",
+      "description": "Hase",
+      "eyes": [
+        5,
+        6,
+        9,
+        6
+      ],
+      "rows": [
+        "1818",
+        "1c38",
+        "1c38",
+        "1c38",
+        "0ff0",
+        "1ff8",
+        "1998",
+        "1998",
+        "1ff8",
+        "0e70",
+        "07e0",
+        "1ff8",
+        "1ffb",
+        "1ffb",
+        "1c3f",
+        "3c3c"
+      ]
+    },
+    {
+      "id": 9,
+      "slug": "panda",
+      "name": "PANDA",
+      "description": "Panda",
+      "eyes": [
+        4,
+        5,
+        9,
+        5
+      ],
+      "rows": [
+        "381c",
+        "7c3e",
+        "7ffe",
+        "3ffc",
+        "718e",
+        "75ae",
+        "718e",
+        "7ffe",
+        "3e7c",
+        "1ff8",
+        "0ff0",
+        "1db8",
+        "381c",
+        "3bdc",
+        "1ff8",
+        "1e78"
+      ]
+    },
+    {
+      "id": 10,
+      "slug": "pip",
+      "name": "PIP",
+      "description": "Pinguin",
+      "eyes": [
+        6,
+        5,
+        9,
+        5
+      ],
+      "rows": [
+        "07e0",
+        "0ff0",
+        "1ff8",
+        "1818",
+        "381c",
+        "3a5c",
+        "381c",
+        "3e7c",
+        "7bde",
+        "fbdf",
+        "e7e7",
+        "cff3",
+        "0ff0",
+        "0ff0",
+        "1e78",
+        "3e7c"
+      ]
+    },
+    {
+      "id": 11,
+      "slug": "draco",
+      "name": "DRACO",
+      "description": "Drache",
+      "eyes": [
+        4,
+        4,
+        10,
+        4
+      ],
+      "rows": [
+        "3018",
+        "3838",
+        "3ffc",
+        "7ffe",
+        "73ce",
+        "73ce",
+        "7ffe",
+        "3ff8",
+        "1cf8",
+        "1ff8",
+        "c7e3",
+        "eff7",
+        "7ffe",
+        "3ffc",
+        "0e73",
+        "1e7f"
+      ]
+    },
+    {
+      "id": 12,
+      "slug": "mochi",
+      "name": "MOCHI",
+      "description": "Geist",
+      "eyes": [
+        4,
+        5,
+        10,
+        5
+      ],
+      "rows": [
+        "07e0",
+        "1ff8",
+        "3ffc",
+        "3ffc",
+        "7ffe",
+        "73ce",
+        "73ce",
+        "7ffe",
+        "7e7e",
+        "eff7",
+        "cff3",
+        "0ff0",
+        "1ff8",
+        "1ff8",
+        "1db8",
+        "1998"
+      ]
+    },
+    {
+      "id": 13,
+      "slug": "frog",
+      "name": "FROG",
+      "description": "Frosch",
+      "eyes": [
+        3,
+        3,
+        11,
+        3
+      ],
+      "rows": [
+        "0000",
+        "3c3c",
+        "7e7e",
+        "67e6",
+        "67e6",
+        "3ffc",
+        "7ffe",
+        "781e",
+        "3c3c",
+        "1ff8",
+        "3ffc",
+        "77ee",
+        "67e6",
+        "3ff8",
+        "781e",
+        "fc3f"
+      ]
+    },
+    {
+      "id": 14,
+      "slug": "turt",
+      "name": "TURT",
+      "description": "Schildkröte",
+      "eyes": [
+        5,
+        3,
+        9,
+        3
+      ],
+      "rows": [
+        "07e0",
+        "0ff0",
+        "1ff8",
+        "1998",
+        "1998",
+        "0ff0",
+        "0660",
+        "1ff8",
+        "399c",
+        "77ee",
+        "ee77",
+        "ee77",
+        "77ee",
+        "399c",
+        "1ff8",
+        "381c"
+      ]
+    },
+    {
+      "id": 15,
+      "slug": "bee",
+      "name": "BEE",
+      "description": "Biene",
+      "eyes": [
+        5,
+        5,
+        9,
+        5
+      ],
+      "rows": [
+        "0c30",
+        "0660",
+        "07e0",
+        "0ff0",
+        "1ff8",
+        "1998",
+        "1998",
+        "1ff8",
+        "366c",
+        "7bde",
+        "f81f",
+        "7bde",
+        "33cc",
+        "07e0",
+        "03c0",
+        "0180"
+      ]
+    }
+  ]
+}

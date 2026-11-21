@@ -1,0 +1,11 @@
+build/
+.venv/
+.DS_Store
+__pycache__/
+meshis-simulator
+simulator/dist/
+.env*
+private/
+*.log
+*.key
+*.pem
