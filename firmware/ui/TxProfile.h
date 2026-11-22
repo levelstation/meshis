@@ -1,7 +1,10 @@
 #pragma once
 // Public Meshis profile: menu names only, never channel keys or device settings.
 namespace meshis {
-struct TxPreset {const char* label;const char* text;bool botConfirmed;};
+enum class TxArgument:unsigned char { None, Place, Station, Page };
+struct TxPreset {const char* label;const char* text;bool botConfirmed;TxArgument argument;
+ constexpr TxPreset(const char* l="",const char* t="",bool confirmed=false,TxArgument arg=TxArgument::None):label(l),text(t),botConfirmed(confirmed),argument(arg){}
+};
 constexpr unsigned txChannelCount(){return 2;}
 inline const char* txChannel(unsigned n){static const char* const names[]={"#Public","#Test"};return n<txChannelCount()?names[n]:"";}
 inline const char* txMenu(unsigned n){return n==0?"PUBLIC // QUICK TX":n==1?"TEST // QUICK TX":"QUICK TX";}

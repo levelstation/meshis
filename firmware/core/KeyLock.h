@@ -19,12 +19,14 @@ public:
 private:
   Phase phase_=Phase::Unlocked;
   uint32_t first_=0,last_=0,phaseStart_=0;uint8_t count_=0,deferred_=0;
-  bool haveLast_=false;
+  bool haveLast_=false,inputHeld_=false;
 public:
   Phase phase()const{return phase_;}
   bool overlay()const{return phase_!=Phase::Unlocked;}
   bool pending()const{return count_!=0;}
-  bool blocks()const{return overlay() || pending();}
+  bool blocks()const{return overlay() || pending() || inputHeld_;}
+  void setInputHeld(bool held){inputHeld_=held;}
+  void cancelClicks(){count_=deferred_=0;haveLast_=false;}
   uint32_t elapsed(uint32_t now)const{return uint32_t(now-phaseStart_);}
   void poll(uint32_t now){
     if(count_ && uint32_t(now-first_)>windowMs){if(phase_==Phase::Unlocked)deferred_=count_;count_=0;}

@@ -10,6 +10,12 @@
 #include <cstdio>
 static Simulator* model=nullptr;
 static bool renderLayouts=false;
+int runHeltecTests(const std::string& output);
+@interface PrgLabButton:LabButton @end
+@implementation PrgLabButton
+-(void)mouseDown:(NSEvent*)event{[self highlight:YES];model->prgLevel(true);}
+-(void)mouseUp:(NSEvent*)event{[self highlight:NO];model->prgLevel(false);}
+@end
 @interface EventStack:NSStackView @end
 @implementation EventStack
 -(BOOL)isFlipped{return YES;}
@@ -66,7 +72,7 @@ static bool renderLayouts=false;
 }
 -(void)applicationDidFinishLaunching:(NSNotification*)note {
   sim=std::make_unique<Simulator>();model=sim.get();sim->seed();
-  self.preferences=[[NSUserDefaults alloc]initWithSuiteName:@"org.meshis.simulator.demo.preferences"];
+  self.preferences=[[NSUserDefaults alloc]initWithSuiteName:Simulator::heltecPrg()?@"org.meshis.simulator.heltec.demo.preferences":@"org.meshis.simulator.demo.preferences"];
   if(!renderLayouts){
     if([self.preferences objectForKey:@"timezoneLux"])sim->setLuxembourg([self.preferences boolForKey:@"timezoneLux"]);
     if([self.preferences objectForKey:@"soundEnabled"])sim->setSoundEnabled([self.preferences boolForKey:@"soundEnabled"]);
@@ -80,6 +86,7 @@ static bool renderLayouts=false;
   if(Simulator::classicUi()){
     self.window.title=[NSString stringWithFormat:@"%s Simulator — SIMULATION",Simulator::appName()];
     title.stringValue=[NSString stringWithFormat:@"%s / Display Simulator",Simulator::appName()];
+    if(Simulator::heltecPrg()){self.window.title=[NSString stringWithFormat:@"%s · Heltec V4.3 OLED · SIMULATION",Simulator::appName()];title.stringValue=[NSString stringWithFormat:@"%s / Heltec PRG Simulator",Simulator::appName()];}
   }
   NSTextField* warning=[self label:@"SIMULATION · keine Geräteverbindung · kein echter Funkverkehr"];warning.textColor=[NSColor systemOrangeColor];
   self.status=[self label:@""];self.status.font=[NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
@@ -93,6 +100,7 @@ static bool renderLayouts=false;
   self.pages.target=self;self.pages.action=@selector(pageChanged:);
   NSMutableArray<NSView*>* eventViews=[NSMutableArray array];
   NSArray* events=@[@"Idle",@"RX-Paket",@"TX-Paket",@"Neue Nachricht",@"Bluetooth verbunden",@"Bluetooth getrennt",@"Akku niedrig",@"Akku lädt",@"Funkfehler",@"Keine Funkaktivität (+5 min)",@"Ereignisstatus normalisieren",@"GPS-Kurs: Bewegung (SIM)",@"GPS-Kurs: Stillstand (SIM)",@"GPS-Kurs: veraltet (SIM)",@"GPS: kein Fix (SIM)",@"RX-Langtext Teil 1 (SIM)",@"RX-Langtext Teil 2 (SIM)",@"Public fehlt (SIM)",@"Demo-Kanaele wiederherstellen",@"TX-Fehler aktiv (SIM)",@"TX-Fehler aus (SIM)",@"Rauschpegel ruhig (SIM)",@"Rauschpegel hoch (SIM)",@"Rauschpegel unbekannt (SIM)"];
+  if(Simulator::heltecPrg())events=[events arrayByAddingObjectsFromArray:@[@"Repeater-Liste (SIM)",@"Direktes Repeater-Advert (SIM)",@"Weitergeleitetes Advert (SIM)",@"Kennungskollision (SIM)"]];
   for(NSInteger i=0;i<events.count;++i)[eventViews addObject:[self button:events[i] action:@selector(eventPressed:) tag:i]];
   NSButton* up=[self button:@"↑" action:@selector(joystick:) tag:0xb5];
   NSButton* down=[self button:@"↓" action:@selector(joystick:) tag:0xb6];
@@ -102,7 +110,9 @@ static bool renderLayouts=false;
   NSStackView* dpad=[self column:@[up,[self row:@[left,center,right]],down]];dpad.alignment=NSLayoutAttributeCenterX;
   NSButton* enter=[self button:@"ENTER" action:@selector(joystick:) tag:13];enter.toolTip=@"Ein Ereignis: Druck auf den Joystick (SW2), keine zweite physische ENTER-Taste.";
   NSButton* reset=[self button:@"RESET" action:@selector(hardwareReset:) tag:0];reset.toolTip=@"Normaler Reset (K2). Einstellungen bleiben erhalten. Kein Factory Reset.";
-  self.enterButton=enter;self.resetButton=reset;
+  NSButton* prg=[PrgLabButton buttonWithTitle:@"PRG · halten / loslassen" target:nil action:nil];
+  prg.toolTip=@"Kurz: Weiter; 0,6–<1,5 s: Bestätigen; ab 1,5 s: Zurück. 2x kurz: Sound; 3x kurz: Sperre. Erst Loslassen löst Halteaktionen aus.";
+  self.enterButton=Simulator::heltecPrg()?prg:enter;self.resetButton=reset;
   NSButton* back=[self button:@"MENU / Zurück" action:@selector(joystick:) tag:27];back.toolTip=@"MENU K1, P0.08: 1x Zurück, 2x Sound, 3x Tastensperre innerhalb 1,2 s.";
   EventStack* eventStack=[[EventStack alloc]init];eventStack.orientation=NSUserInterfaceLayoutOrientationVertical;eventStack.spacing=8;eventStack.alignment=NSLayoutAttributeLeading;for(NSView* item in eventViews)[eventStack addArrangedSubview:item];eventStack.translatesAutoresizingMaskIntoConstraints=NO;
   for(NSView* eventView in eventViews)[eventView.widthAnchor constraintEqualToAnchor:eventStack.widthAnchor].active=YES;
@@ -110,11 +120,15 @@ static bool renderLayouts=false;
   [eventStack.widthAnchor constraintEqualToAnchor:eventScroll.contentView.widthAnchor].active=YES;
   [eventScroll.heightAnchor constraintGreaterThanOrEqualToConstant:80].active=YES;
   [eventScroll setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
-  NSStackView* hardware=[self row:@[dpad,[self column:@[enter,back,reset]]]];
+  NSStackView* hardware=Simulator::heltecPrg()?[self column:@[prg,reset]]:[self row:@[dpad,[self column:@[enter,back,reset]]]];
   NSTextField* hint=[self label:@"2× MENU: Sound · 3×: Sperre · ⌘R: RESET"];hint.font=[NSFont systemFontOfSize:10];
+  if(Simulator::heltecPrg()){
+    hint.stringValue=@"Leertaste / Maus = PRG\nKurz: Weiter · 0,6–<1,5 s: Bestätigen\nAb 1,5 s: Zurück · erst nach Loslassen\n2× kurz: Sound · 3× kurz: Sperre";
+    hint.maximumNumberOfLines=0;hint.lineBreakMode=NSLineBreakByWordWrapping;hint.preferredMaxLayoutWidth=300;
+  }
   self.meshis=[[LabPopup alloc]initWithFrame:NSZeroRect pullsDown:NO];for(int i=0;i<Simulator::meshiCount();++i)[self.meshis addItemWithTitle:[NSString stringWithFormat:@"%s · %s",Simulator::meshiName(i),Simulator::meshiDescription(i)]];
   self.meshis.target=self;self.meshis.action=@selector(meshiChanged:);self.meshis.hidden=!Simulator::meshiUi();
-  NSStackView* side=[self column:@[[self button:@"STARTANIMATION" action:@selector(replayBoot:) tag:0],self.meshis,[self label:@"ANSICHT"],self.pages,[self label:@"TESTEREIGNISSE — SIMULIERT"],eventScroll,[self label:@"WIO L1 PRO · HARDWARETASTEN"],hardware,hint]];
+  NSStackView* side=[self column:@[[self button:@"STARTANIMATION" action:@selector(replayBoot:) tag:0],self.meshis,[self label:@"ANSICHT"],self.pages,[self label:@"TESTEREIGNISSE — SIMULIERT"],eventScroll,[self label:Simulator::heltecPrg()?@"HELTEC V4.3 · PRG / RESET":@"WIO L1 PRO · HARDWARETASTEN"],hardware,hint]];
   side.detachesHiddenViews=YES;[self.meshis.widthAnchor constraintEqualToAnchor:side.widthAnchor].active=YES;
   [side.widthAnchor constraintEqualToConstant:300].active=YES;
   [self.pages.widthAnchor constraintEqualToAnchor:side.widthAnchor].active=YES;
@@ -142,10 +156,16 @@ static bool renderLayouts=false;
   for(NSView* v in @[main,self.status,self.clocks])[v.widthAnchor constraintEqualToAnchor:root.widthAnchor].active=YES;
   [main setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
   __weak SimApp* weakSelf=self;
-  self.monitor=[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown handler:^NSEvent*(NSEvent* event){
+  self.monitor=[NSEvent addLocalMonitorForEventsMatchingMask:(NSEventMaskKeyDown | NSEventMaskKeyUp) handler:^NSEvent*(NSEvent* event){
     if(event.window!=weakSelf.window)return event;
-    if(event.modifierFlags & NSEventModifierFlagCommand){if([event.charactersIgnoringModifiers.lowercaseString isEqualToString:@"r"]){if(!event.isARepeat)[weakSelf hardwareReset:nil];return nil;}return event;}
+    if(event.type==NSEventTypeKeyUp && !Simulator::heltecPrg())return event;
+    if(event.modifierFlags & NSEventModifierFlagCommand){if([event.charactersIgnoringModifiers.lowercaseString isEqualToString:@"r"]){if(event.type==NSEventTypeKeyDown && !event.isARepeat)[weakSelf hardwareReset:nil];return nil;}return event;}
     if([weakSelf.window.firstResponder isKindOfClass:NSTextView.class])return event;
+    if(Simulator::heltecPrg()){
+      if(event.keyCode==49){if(!event.isARepeat)model->prgLevel(event.type==NSEventTypeKeyDown);[weakSelf sync];return nil;}
+      return event;
+    }
+    if(event.type==NSEventTypeKeyUp)return event;
     const uint8_t key=firmwareKeyForMacEvent(event.keyCode,event.isARepeat);if(!key)return event;model->key(key);[weakSelf sync];return nil;
   }];
   NSMenu* menu=[[NSMenu alloc]init];NSMenuItem* menuRoot=[[NSMenuItem alloc]init];[menu addItem:menuRoot];NSMenu* appMenu=[[NSMenu alloc]init];
@@ -160,7 +180,7 @@ static bool renderLayouts=false;
 }
 -(void)exportLayoutScreenshots {
   if(Simulator::classicUi()){
-    NSString* directory=Simulator::meshiUi()?@"build/native":[NSString stringWithFormat:@"build/three-brands/%s/native",Simulator::appSlug()];
+    NSString* directory=Simulator::heltecPrg()?@"build/heltec/native":(Simulator::meshiUi()?@"build/native":[NSString stringWithFormat:@"build/three-brands/%s/native",Simulator::appSlug()]);
     std::filesystem::create_directories(directory.UTF8String);
     sim->advance(3000);[self sync];
     if(Simulator::meshiUi()){
@@ -181,6 +201,15 @@ static bool renderLayouts=false;
       cleanText(self.window.title);
       auto audit=[&](auto&& walk,NSView* current)->void{if(current.hidden)return;if([current isKindOfClass:NSTextField.class])cleanText(((NSTextField*)current).stringValue);if([current isKindOfClass:NSButton.class])cleanText(((NSButton*)current).title);for(NSView* child in current.subviews)walk(walk,child);};audit(audit,view);
     }
+    if(Simulator::heltecPrg()){
+      [self.window setContentSize:NSMakeSize(1240,840)];
+      auto pageNamed=[&](const char* name){for(int p=0;p<Simulator::pageCount();p++)if(!strcmp(Simulator::pageName(p),name)){sim->goToPage(p);return;}fprintf(stderr,"Missing Heltec view\n");exit(1);};
+      auto capture=[&](const char* name){[self sync];[self.window.contentView layoutSubtreeIfNeeded];[self.window.contentView displayIfNeeded];NSView* view=self.window.contentView;NSBitmapImageRep* bitmap=[view bitmapImageRepForCachingDisplayInRect:view.bounds];[view cacheDisplayInRect:view.bounds toBitmapImageRep:bitmap];[[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}]writeToFile:[directory stringByAppendingPathComponent:[NSString stringWithUTF8String:name]] atomically:YES];};
+      pageNamed("RX Live / Noise");sim->event(Simulator::NoiseQuiet);for(int n=0;n<40;n++)sim->advance(500);sim->event(Simulator::NoiseBusy);for(int n=0;n<24;n++)sim->advance(500);capture("noise-native.png");
+      pageNamed("Repeaters");sim->event(Simulator::DemoRepeaters);sim->event(Simulator::DemoForwarded);sim->event(Simulator::DemoCollision);capture("repeaters-native.png");sim->key(13);sim->key(0xb7);capture("repeaters-relayed-native.png");
+      pageNamed("Messages");sim->key(13);sim->key(13);if(!Simulator::meshiUi()){sim->key(0xb7);sim->key(0xb7);}sim->key(13);sim->key(13);capture("tx-preview-native.png");sim->key(13);sim->advance(1);sim->receiveSimulated(Simulator::meshiUi()?"#Public":"#LU-Alert","DEMO BOT","SIMULATION: Antwort im gewaehlten Kanal. Kein echter Funkverkehr.");capture("channel-rx-native.png");
+      self.grid.state=NSControlStateValueOn;[self optionsChanged:nil];capture("channel-rx-grid-native.png");
+    }
     printf("PASS: %s native layouts, full OLED and hardware buttons, %s\n",Simulator::appName(),Simulator::meshiUi()?"16-pet paged Board and selector":"clean brand title and no avatar/time controls");return;
   }
 }
@@ -198,6 +227,7 @@ static bool renderLayouts=false;
   self.fitLabel.stringValue=[NSString stringWithFormat:@"128 × 64 · 1 Bit · 1024 Byte · effektiv %d× · vollständig zentriert",fit.scale];
   if(memcmp(lastPixels.data(),sim->buffer(),1024)){memcpy(lastPixels.data(),sim->buffer(),1024);self.oled.needsDisplay=YES;}
 }
+-(void)windowDidResignKey:(NSNotification*)note{if(Simulator::heltecPrg())sim->prgCancel();}
 -(void)windowDidResize:(NSNotification*)note{self.oled.needsDisplay=YES;[self sync];}
 -(void)tick:(NSTimer*)timer{auto now=std::chrono::steady_clock::now();auto ms=std::chrono::duration_cast<std::chrono::milliseconds>(now-lastTick).count();lastTick+=std::chrono::milliseconds(ms);if(self.paused.state!=NSControlStateValueOn)sim->advance((uint32_t)ms);if(std::chrono::duration<double>(now-lastPaint).count()>=1./simulatorHz((int)self.rate.indexOfSelectedItem)){lastPaint=now;[self sync];}}
 -(void)meshiChanged:(id)sender{sim->selectMeshi((int)self.meshis.indexOfSelectedItem);[self sync];}
@@ -216,8 +246,9 @@ static bool renderLayouts=false;
 -(void)applicationWillTerminate:(NSNotification*)note{[self.timer invalidate];if(self.monitor)[NSEvent removeMonitor:self.monitor];}
 @end
 int main(int argc,char** argv){@autoreleasepool{
+  if(Simulator::heltecPrg() && argc>1 && std::string(argv[1])=="--self-test")return runHeltecTests(argc>2?argv[2]:"build/heltec/screenshots");
   if(argc>1 && (std::string(argv[1])=="--self-test" || std::string(argv[1])=="--bless"))return runTests(argc>2?argv[2]:"build/screenshots",std::string(argv[1])=="--bless");
-  if(argc>1 && std::string(argv[1])=="--help"){puts("Meshis Simulator — DEMO ONLY\nArrows: joystick; Enter: select; Escape: back; Cmd+R: reset.\n--self-test [output] | --bless [output] | --layout-screenshots");return 0;}
+  if(argc>1 && std::string(argv[1])=="--help"){puts(Simulator::heltecPrg()?"Heltec OLED Simulator — SIMULATION ONLY\nSpace: hold/release PRG; short: Next; 600-1499ms: Enter; 1500ms+: Back.\n2x PRG: Sound preference; 3x PRG: Lock; Cmd+R: normal reset.\n--self-test [output] | --layout-screenshots":"Meshis Simulator — DEMO ONLY\nArrows: joystick; Enter: select; Escape: back; Cmd+R: reset.\n--self-test [output] | --bless [output] | --layout-screenshots");return 0;}
   renderLayouts=argc>1 && std::string(argv[1])=="--layout-screenshots";
   [NSApplication sharedApplication];NSApp.activationPolicy=renderLayouts?NSApplicationActivationPolicyProhibited:NSApplicationActivationPolicyRegular;SimApp* app=[[SimApp alloc]init];NSApp.delegate=app;[NSApp run];
 }return 0;}

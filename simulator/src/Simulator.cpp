@@ -4,6 +4,8 @@
 #include "MeshiSprites.h"
 #include "LockRenderer.h"
 #include "MenuActions.h"
+#include "PrgInput.h"
+#include "RuntimeTelemetry.h"
 #include <array>
 ColorVal UIColor::window_bkg=0,UIColor::title_bkg=0,UIColor::title_txt=1,UIColor::primary_txt=1,
   UIColor::secondary_txt=1,UIColor::warning_txt=1,UIColor::popup_bkg=0,UIColor::popup_txt=1,UIColor::corp_blue=1;
@@ -15,6 +17,7 @@ struct DesktopDisplay:FramebufferDisplay {
 struct Simulator::Impl {
   DesktopDisplay display;NodePrefs prefs;UITask task;
   HomeScreen home;SplashScreen splash;MsgPreviewScreen preview;UIScreen* current;
+  meshis::PrgInput prg;bool prgDown=false;
   uint32_t fractional=0;bool isLow=false,isCharging=false;meshis::MenuDebounce menuDebounce;bool menuDown=false;
   Impl():home(&task,&rtc_clock,&sensors,&prefs),splash(&task
 #if defined(MESHIS_BOARD)
@@ -26,7 +29,7 @@ Simulator::Simulator(){
   simMillis=10000;rtc_clock.set(1782864000);board=Board{};radio_driver=Radio{};the_mesh=Mesh{};
   nux.reset(simMillis);messages={};messageMesh={};nuxBatteryMv=3984;chargeStatus=meshis::ChargeStatus::NotCharging;
 #if defined(MESHIS_V2)
-  meshis::keyLock()={};quickTx={};sensors=SensorManager{};
+  meshis::keyLock()={};quickTx={};meshis::runtimeTelemetry()={};sensors=SensorManager{};
 #endif
   impl_=std::make_unique<Impl>();render();
 
@@ -34,8 +37,19 @@ Simulator::Simulator(){
 Simulator::~Simulator()=default;
 void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clock.set(rtc_clock.getCurrentTime()+impl_->fractional/1000);impl_->fractional%=1000;
 #if defined(MESHIS_V2)
-  auto& lock=meshis::keyLock();if(impl_->menuDebounce.sample(impl_->menuDown,simMillis))lock.menuPress(simMillis);lock.poll(simMillis);
+  auto& lock=meshis::keyLock();
+#if defined(MESHIS_HELTEC_PRG)
+  auto& live=meshis::runtimeTelemetry();if(live.due(simMillis)){
+    const float variation=radio_driver.noise?float(int((simMillis/500)%9)-4):0;
+    live.sample(simMillis,radio_driver.isInRecvMode(),radio_driver.noise?radio_driver.ambient+variation:0,radio_driver.getNoiseFloor());
+  }
+  const auto action=impl_->prg.sample(impl_->prgDown,simMillis,lock);
+  if(action==meshis::PrgInput::Action::ToggleSound){impl_->task.toggleBuzzer();impl_->task.showAlert(soundEnabled()?"SOUND ON":"SOUND OFF",900);}
+  const uint8_t input=meshis::prgKey(action);if(input && !lock.blocks())impl_->current->handleInput(static_cast<char>(input));
+#else
+  if(impl_->menuDebounce.sample(impl_->menuDown,simMillis))lock.menuPress(simMillis);lock.poll(simMillis);
   meshis::dispatchMenuAction(lock,impl_->task,[&](){impl_->current->handleInput(KEY_CANCEL);});
+#endif
   quickTx.poll(messageMesh,simMillis);if(!lock.overlay())impl_->current->poll();
 #else
   impl_->current->poll();
@@ -95,15 +109,32 @@ const char* Simulator::state()const{
 #endif
 }
 unsigned Simulator::simulatedSends()const{return the_mesh.sends;}
-std::string Simulator::status()const{return "SIMULATION | Meshis | Demo data only";}
+std::string Simulator::status()const{return heltecPrg()?std::string("SIMULATION | Heltec V4.3 | ")+(locked()?"LOCKED":"READY")+" | SOUND "+(soundEnabled()?"ON":"OFF")+" | RX "+std::to_string(rxCount())+" | TX "+std::to_string(simulatedSends())+(prgPressed()?" | PRG DOWN":" | PRG FREE"):"SIMULATION | Meshis | Demo data only";}
 void Simulator::seed(){messages.receive("DEMO NODE A","SIMULATION: Demo message. No radio traffic.");
 #if defined(MESHIS_V2)
 quickTx.receive("#Public","DEMO NODE A","SIMULATION: Demo message. No radio traffic.",simMillis);
 #endif
 }
+namespace {
+void demoRepeater(unsigned index,bool direct,float rssi,bool collision=false){
+  auto& telemetry=meshis::runtimeTelemetry();static unsigned handles[12]={};uint8_t key[32],hash[8];
+  for(unsigned n=0;n<32;n++)key[n]=static_cast<uint8_t>(0xD0+index*7+n);
+  key[0]=0xA0+index;key[1]=0x10+index;
+  if(collision){key[0]=0xA0;key[1]=0x10;}
+  for(unsigned n=0;n<8;n++)hash[n]=key[n+2];
+  char name[24];snprintf(name,sizeof(name),"DEMO REPEATER %u",index+1);
+  telemetry.notePacket(&handles[index%12],hash,8,rssi,simMillis);
+  telemetry.beginAdvert(&handles[index%12],hash,8,direct,simMillis);
+  telemetry.observeValidatedAdvert(key,name,true,simMillis);telemetry.endAdvert();
+}
+}
 void Simulator::event(Event e){
   using E=meshis::MeshiEvent;
   switch(e){
+    case DemoRepeaters:demoRepeater(0,true,-74);demoRepeater(1,true,-97);demoRepeater(2,false,-63);radio_driver.rx+=3;break;
+    case DemoDirect:demoRepeater(0,true,-68);++radio_driver.rx;break;
+    case DemoForwarded:demoRepeater(3,false,-49);++radio_driver.rx;break;
+    case DemoCollision:demoRepeater(4,true,-85,true);++radio_driver.rx;break;
     case NoiseQuiet:setSimNoise(-117);break;
     case NoiseBusy:setSimNoise(-92);break;
     case NoiseUnknown:setSimNoise(0);break;
@@ -137,7 +168,7 @@ void Simulator::resetPreservingSettings(){
   simMillis=0;board=Board{};radio_driver=Radio{};radio_driver.rx=radio_driver.tx=radio_driver.errors=0;
   the_mesh=Mesh{};sensors=SensorManager{};messages={};messageMesh={};nux.reset(0);
 #if defined(MESHIS_V2)
-  meshis::keyLock()={};quickTx={};
+  meshis::keyLock()={};quickTx={};meshis::runtimeTelemetry()={};
 #endif
   nuxBatteryMv=board.battery;chargeStatus=meshis::ChargeStatus::NotCharging;nuxLastFrame=0;
   impl_=std::make_unique<Impl>();impl_->prefs=saved;impl_->task.quiet=!savedSound;rtc_clock.set(clock);
@@ -236,10 +267,27 @@ return -1;
 }
 void Simulator::setSimMotion(bool fix,long course,long speed,uint32_t age){sensors.gps.fix=fix;sensors.gps.course=course;sensors.gps.speed=speed;sensors.gps.sample=simMillis-age;render();}
 
-void Simulator::setSimNoise(int dbm){radio_driver.noise=dbm;render();}
+void Simulator::setSimNoise(int dbm){radio_driver.ambient=float(dbm);radio_driver.noise=dbm;render();}
 
 bool Simulator::soundEnabled()const{return !impl_->task.isBuzzerQuiet();}
 void Simulator::setSoundEnabled(bool enabled){if(!locked())impl_->task.quiet=!enabled;render();}
 
 bool Simulator::meshiPickerActive()const{return impl_->home.meshiPickerActive();}
 bool Simulator::mainMenuActive()const{return impl_->home.menuActive();}
+
+bool Simulator::heltecPrg(){
+#if defined(MESHIS_HELTEC_PRG)
+ return true;
+#else
+ return false;
+#endif
+}
+void Simulator::prgLevel(bool pressed){
+#if defined(MESHIS_HELTEC_PRG)
+ impl_->prgDown=pressed;advance(0);render();
+#else
+ (void)pressed;
+#endif
+}
+void Simulator::prgCancel(){impl_->prgDown=false;impl_->prg.cancel(meshis::keyLock());render();}
+bool Simulator::prgPressed()const{return impl_->prg.pressed();}

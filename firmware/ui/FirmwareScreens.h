@@ -1,9 +1,13 @@
 #pragma once
+#include "UiInputHints.h"
 // Shared actual MeshCore/Meshis screen classes. Dependencies supplied by target adapter.
 #include "Branding.h"
 #if defined(MESHIS_V2)
 #include "QuickTx.h"
 #include "GpsCourse.h"
+#if defined(MESHIS_HELTEC_PRG)
+#include "RuntimeTelemetry.h"
+#endif
 #endif
 class SplashScreen : public UIScreen {
   UITask* _task;
@@ -102,6 +106,9 @@ class HomeScreen : public UIScreen {
 #endif
 #if defined(MESHIS_V2)
     LIVE,
+#if defined(MESHIS_HELTEC_PRG)
+    NOISE, REPEATERS,
+#endif
     SOUND,
 #if ENV_INCLUDE_GPS == 1
     COURSE,
@@ -133,6 +140,9 @@ class HomeScreen : public UIScreen {
   SensorManager* _sensors;
   NodePrefs* _node_prefs;
   uint8_t _page;
+#if defined(MESHIS_HELTEC_PRG)
+  bool _repeater_list=false;uint8_t _repeater_page=0;
+#endif
   bool _shutdown_init;
 #if defined(MESHIS_BOARD)
   uint8_t _meshi_cursor=0;
@@ -147,6 +157,9 @@ class HomeScreen : public UIScreen {
     static const HomePage order[]={
 #if defined(MESHIS_V2)
       MESSAGES,LIVE,
+#if defined(MESHIS_HELTEC_PRG)
+      NOISE,REPEATERS,
+#endif
 #endif
 #if defined(MESHIS_BOARD)
       BOARD,ANIMATIONS,
@@ -273,6 +286,9 @@ public:
 #if defined(BRAND_CLASSIC_UI)
   bool menuActive()const{return _classic_menu;}
   void selectPage(int index){if(index>=0 && index<Count){_page=index;_classic_menu=false;
+#if defined(MESHIS_HELTEC_PRG)
+      _repeater_list=false;_repeater_page=0;
+#endif
 #if defined(MESHIS_BOARD)
       _meshi_cursor=meshis_pets::valid(_node_prefs->meshis_pet);
 #if defined(MESHIS_V2)
@@ -293,6 +309,9 @@ public:
 #endif
 #if defined(MESHIS_V2)
       case LIVE:return "Live Radio / GPS";case SOUND:return "Sound";
+#if defined(MESHIS_HELTEC_PRG)
+      case NOISE:return "RX Live / Noise";case REPEATERS:return "Repeaters";
+#endif
 #if ENV_INCLUDE_GPS == 1
       case COURSE:return "GPS Course";
 #endif
@@ -382,6 +401,10 @@ public:
       return 1000;
     }
 #endif
+#if defined(MESHIS_HELTEC_PRG)
+    if(_page==HomePage::NOISE){meshis::renderNoiseTrace(display,meshis::runtimeTelemetry());return 500;}
+    if(_page==HomePage::REPEATERS){meshis::renderRepeaters(display,meshis::runtimeTelemetry(),millis(),_repeater_page,_repeater_list);return 500;}
+#endif
 #if defined(MESHIS_BOARD)
     if(_page==HomePage::BOARD){
 #if defined(MESHIS_V2)
@@ -392,7 +415,7 @@ public:
         meshis_pets::sprite(display,pet,8,19,2);
         display.drawTextEllipsized(50,23,78,meshis_pets::name(pet));
         display.drawTextEllipsized(50,36,78,"Ausgewaehlt");
-        display.drawTextEllipsized(0,56,128,"ENTER: Meshis waehlen");
+        display.drawTextEllipsized(0,56,128,meshis::inputHint("ENTER: Meshis waehlen","PRG halten: Meshis"));
         return 1000;
       }
 #endif
@@ -404,7 +427,7 @@ public:
       meshis_pets::draw(display,pet,nux,millis(),_node_prefs->meshis_animations!=0);
       display.drawTextEllipsized(50,22,76,meshis_pets::name(pet));
       display.drawTextEllipsized(50,34,56,meshis_pets::stateName(nux.state(millis())));
-      char info[32];if(nux.errorCode())snprintf(info,sizeof(info),"E%03u",nux.errorCode());else snprintf(info,sizeof(info),"Enter: Menu");
+      char info[32];if(nux.errorCode())snprintf(info,sizeof(info),"E%03u",nux.errorCode());else snprintf(info,sizeof(info),"%s",meshis::inputHint("Enter: Menu","PRG halten: Menu"));
       display.drawTextEllipsized(50,46,76,info);
       snprintf(info,sizeof(info),"R%lu T%lu B%c",(unsigned long)radio_driver.getPacketsRecv(),(unsigned long)radio_driver.getPacketsSent(),_task->hasConnection()?'+':'-');
       display.drawTextEllipsized(0,56,128,info);return nux.interval(millis(),_node_prefs->meshis_animations!=0);
@@ -476,12 +499,12 @@ public:
 #endif
     if (_page == HomePage::TIMEZONE) {
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
-      display.setCursor(0,24);display.print("Timezone / Enter");
+      display.setCursor(0,24);display.print(meshis::inputHint("Timezone / Enter","Timezone / PRG halten"));
       display.setCursor(0,40);display.print(_node_prefs->meshis_timezone==1?"Europe/Luxembourg":"UTC");
 #if !defined(BRAND_CLASSIC_UI) || defined(MESHIS_BOARD)
     } else if (_page == HomePage::ANIMATIONS) {
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
-      display.setCursor(0,24);display.print("Animations / Enter");
+      display.setCursor(0,24);display.print(meshis::inputHint("Animations / Enter","Anim. / PRG halten"));
       display.setCursor(0,40);display.print(_node_prefs->meshis_animations?"On":"Off");
 #endif
 #if defined(MESHIS_V2)
@@ -496,7 +519,11 @@ public:
       display.drawTextEllipsized(0,47,128,tmp);
       auto* gps=_sensors->getLocationProvider();snprintf(tmp,sizeof(tmp),"GPS %s BLE %c",!_task->getGPSState()?"OFF":gps && gps->isValid()?"FIX":"NO FIX",_task->hasConnection()?'+':'-');display.drawTextEllipsized(0,56,128,tmp);return 1000;
     } else if(_page==HomePage::SOUND){
-      display.setColor(1);display.setTextSize(1);display.drawTextEllipsized(0,24,128,_task->isBuzzerQuiet()?"Summer: stumm":"Summer: aktiv");display.drawTextEllipsized(0,42,128,"Enter: umschalten");return 1000;
+      display.setColor(1);display.setTextSize(1);display.drawTextEllipsized(0,24,128,_task->isBuzzerQuiet()?meshis::inputHint("Summer: stumm","Sound-Pref: OFF"):meshis::inputHint("Summer: aktiv","Sound-Pref: ON"));
+#if defined(MESHIS_HELTEC_PRG)
+      display.drawTextEllipsized(0,34,128,"Kein interner Summer");
+#endif
+display.drawTextEllipsized(0,42,128,meshis::inputHint("Enter: umschalten","PRG halten: wechseln"));return 1000;
 #if ENV_INCLUDE_GPS == 1
     } else if(_page==HomePage::COURSE){
       display.setColor(1);display.setTextSize(1);display.drawTextEllipsized(0,20,128,"GPS COURSE (COG)");
@@ -515,7 +542,7 @@ public:
 #else
       if(messages.active())messages.render(display,messageMesh);
 #endif
-      else {display.setCursor(0,24);display.print("Messages / Enter");display.setCursor(0,40);display.print("Inbox Channels People");}
+      else {display.setCursor(0,24);display.print(meshis::inputHint("Messages / Enter","Messages / PRG halten"));display.setCursor(0,40);display.print("Inbox Channels People");}
     } else if (_page == HomePage::DIAGNOSTICS) {
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
       snprintf(tmp,sizeof(tmp),"RX %lu",(unsigned long)radio_driver.getPacketsRecv());display.setCursor(0,20);display.print(tmp);
@@ -584,7 +611,7 @@ public:
       snprintf(tmp,sizeof(tmp),"PIN: %06lu",(unsigned long)the_mesh.getBLEPin());
       display.setCursor(0,32);display.print(the_mesh.getBLEPin()?tmp:"PIN: not required");
       display.setCursor(0,44);display.print(_task->hasConnection()?"Connected":"Not connected");
-      display.setCursor(0,56);display.print("Enter: On / Off");
+      display.setCursor(0,56);display.print(meshis::inputHint("Enter: On / Off","PRG halten: On / Off"));
 #else
       display.setColor(UIColor::corp_blue);
       display.drawXbm((display.width() - 32) / 2, 18,
@@ -777,12 +804,28 @@ public:
 
   bool handleInput(char c) override {
     const uint8_t key=static_cast<uint8_t>(c);
+#if defined(MESHIS_HELTEC_PRG)
+    if(!_classic_menu && _page==HomePage::REPEATERS){
+      if(key==KEY_ENTER){_repeater_list=!_repeater_list;return true;}
+      if(_repeater_list){
+        if(key==KEY_CANCEL){_repeater_list=false;return true;}
+        if(key==KEY_NEXT || key==KEY_RIGHT || key==KEY_PREV || key==KEY_LEFT){
+          const unsigned pages=(meshis::runtimeTelemetry().repeaterCount()+1)/2;
+          if(pages)_repeater_page=(_repeater_page+((key==KEY_PREV||key==KEY_LEFT)?pages-1:1))%pages;
+        }
+        return true;
+      }
+    }
+#endif
 #if defined(BRAND_CLASSIC_UI)
     if(_classic_menu){
       if(key==KEY_CANCEL){_classic_menu=false;return true;}
       if(key==KEY_UP || key==KEY_LEFT || key==KEY_PREV)_classic_selection=(_classic_selection+Count-2)%(Count-1);
       else if(key==KEY_DOWN || key==KEY_RIGHT || key==KEY_NEXT)_classic_selection=(_classic_selection+1)%(Count-1);
       else if(key==KEY_ENTER || key==KEY_SELECT){_page=menuPage(_classic_selection);_classic_menu=false;
+#if defined(MESHIS_HELTEC_PRG)
+        _repeater_list=false;_repeater_page=0;
+#endif
 #if defined(MESHIS_BOARD)
         _meshi_cursor=meshis_pets::valid(_node_prefs->meshis_pet);
 #if defined(MESHIS_V2)

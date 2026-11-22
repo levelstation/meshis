@@ -12,3 +12,7 @@ Board ist ein einzelner Hauptmenüpunkt, ENTER öffnet das Figuren-Untermenü, M
 ## 0.2 RC2 · 2026-11-22
 
 Eigenes Kanalprofil, eigenständiges Releasepaket, Grundrausch-Schätzung aus vorhandenem MeshCore-Cache und Heltec-4V2-Roadmap. Keine Funkprotokolländerung und kein Flashvorgang.
+
+## 0.2.0-heltec-dev1 – öffentliche Vorschau
+
+Separate Heltec-V4.3-OLED-Simulation im Browser und auf macOS. Gemeinsamer C++-PRG-/Menücode, Live-Pegelkurve, passive Repeater-Liste mit vier Hex-Zeichen, Kanalansicht nach lokaler TX-Annahme und LU-Alert-Parametervorlagen. R2/R8 kompiliert, Hardware UNTESTED. Bestehende Wio-Simulation und Downloadartefakte bleiben erhalten.

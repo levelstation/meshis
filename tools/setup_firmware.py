@@ -7,6 +7,10 @@ if not upstream.exists():
  subprocess.run(['git','clone','https://github.com/meshcore-dev/MeshCore.git',str(upstream)],check=True)
  subprocess.run(['git','-C',str(upstream),'checkout','--detach',PIN],check=True)
 assert subprocess.check_output(['git','-C',str(upstream),'rev-parse','HEAD'],text=True).strip()==PIN,'Different checkout: preserve it and prepare a separate pinned source folder.'
+# Remove only our known additive Heltec overlay before preparing another target.
+heltec=ROOT/'patches/heltec-prg.patch'
+if heltec.exists() and subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(heltec)],capture_output=True).returncode==0:
+ subprocess.run(['git','-C',str(upstream),'apply','--reverse',str(heltec)],check=True)
 patch=ROOT/'patches/meshis2.patch'
 check=subprocess.run(['git','-C',str(upstream),'apply','--check',str(patch)],capture_output=True)
 if check.returncode==0:subprocess.run(['git','-C',str(upstream),'apply',str(patch)],check=True)

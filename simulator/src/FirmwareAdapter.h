@@ -15,8 +15,12 @@
 #define UI_SENSORS_PAGE 0
 #define UI_DISCOVER_SCREEN 1
 #define UI_NO_HIBERNATE 1
+#if defined(MESHIS_HELTEC_PRG)
+#define UI_HAS_JOYSTICK 0
+#else
 #define UI_HAS_JOYSTICK 1
 #define PIN_BUZZER 12
+#endif
 #define AUTO_OFF_MILLIS 15000
 #define BOOT_SCREEN_MILLIS 3000
 #if defined(MESHIS_V2)
@@ -67,6 +71,8 @@ struct SensorManager {LocationProvider gps;void querySensors(int,CayenneLPP&){}L
 struct Board {uint16_t battery=3984;uint16_t getBattMilliVolts()const{return battery;}};
 struct Radio {
   uint32_t rx=0,tx=0,errors=0;
+  float ambient=-117;bool listening=true;
+  bool isInRecvMode()const{return listening;}float getCurrentRSSI()const{return ambient;}
 #if defined(MESHIS_V2)
   int noise=0;
 #else
