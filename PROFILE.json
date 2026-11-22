@@ -1,0 +1,10 @@
+{
+  "version": "0.2",
+  "profile": "Meshis Public",
+  "quick_tx_menu_names": [
+    "#Public",
+    "#Test"
+  ],
+  "configuration_included": false,
+  "device_changes": false
+}

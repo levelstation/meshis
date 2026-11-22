@@ -6,7 +6,7 @@
 class Simulator {
   struct Impl;std::unique_ptr<Impl> impl_;
 public:
-  enum Event { Idle,Rx,Tx,Message,BleConnected,BleDisconnected,LowBattery,Charging,RadioError,Quiet,Reset,GpsMoving,GpsStationary,GpsStale,GpsNoFix,BotPartOne,BotPartTwo,MissingPublic,RestoreChannels,TxFail,TxOk };
+  enum Event { Idle,Rx,Tx,Message,BleConnected,BleDisconnected,LowBattery,Charging,RadioError,Quiet,Reset,GpsMoving,GpsStationary,GpsStale,GpsNoFix,BotPartOne,BotPartTwo,MissingPublic,RestoreChannels,TxFail,TxOk,NoiseQuiet,NoiseBusy,NoiseUnknown };
   Simulator();~Simulator();
   void advance(uint32_t ms);void key(uint8_t value);void event(Event);
   void render();const uint8_t* buffer()const;
@@ -19,7 +19,7 @@ public:
   void seed();
   bool locked()const;int lockPhase()const;void menuLevel(bool pressed);
   void receiveSimulated(const char* channel,const char* sender,const char* text,bool authenticated=false,bool expected=false,bool correlated=false);
-  void setSimChannel(unsigned slot,const char* name);void setSimTxFailure(bool fail);
+  void setSimChannel(unsigned slot,const char* name);void setSimNoise(int dbm);void setSimTxFailure(bool fail);
   std::string lastSimulatedText()const;std::string lastSimulatedChannel()const;
   unsigned rxCount()const;int quickPage()const;void setSimMotion(bool fix,long course,long speed,uint32_t age);
 

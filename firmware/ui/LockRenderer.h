@@ -25,4 +25,16 @@ template<class D> unsigned renderLock(D& d,const KeyLock& lock,uint8_t pet,uint3
   d.drawTextCentered(64,56,opening?"Zurueck zur Ansicht":"3x MENU TO UNLOCK");
   return phase==KeyLock::Phase::Locked?1000:100;
 }
+template<class D> unsigned renderClassicLock(D& d,const KeyLock& lock,const char* title,uint32_t now){
+  const auto phase=lock.phase();const uint32_t elapsed=lock.elapsed(now);
+  const bool opening=phase==KeyLock::Phase::Opening || phase==KeyLock::Phase::Joy;
+  d.setColor(1);d.setTextSize(1);d.drawTextCentered(64,0,title);
+  if(phase!=KeyLock::Phase::Joy){
+    const unsigned open=phase==KeyLock::Phase::Opening?(elapsed<100?0:elapsed<200?1:2):phase==KeyLock::Phase::Closing?(elapsed<150?2:elapsed<300?1:0):0;
+    pixelLock(d,59,22,open);
+  }
+  d.drawTextCentered(64,45,opening?"KEYS UNLOCKED":"KEYS LOCKED");
+  d.drawTextCentered(64,56,opening?"Zurueck zur Ansicht":"3x MENU TO UNLOCK");
+  return phase==KeyLock::Phase::Locked?1000:100;
+}
 }

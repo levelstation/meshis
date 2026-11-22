@@ -48,7 +48,13 @@ void Simulator::key(uint8_t key){
   impl_->current->handleInput(static_cast<char>(key));if(impl_->task.goHome){showHome();impl_->task.goHome=false;}render();}
 void Simulator::render(){auto& d=impl_->display;d.startFrame();
 #if defined(MESHIS_V2)
-  if(meshis::keyLock().overlay())meshis::renderLock(d,meshis::keyLock(),meshi(),simMillis);
+  if(meshis::keyLock().overlay()){
+#if defined(MESHIS_BOARD)
+    meshis::renderLock(d,meshis::keyLock(),meshi(),simMillis);
+#else
+    meshis::renderClassicLock(d,meshis::keyLock(),meshis_brand::menuLabel(),simMillis);
+#endif
+  }
   else
 #endif
   impl_->current->render(d);
@@ -97,14 +103,17 @@ quickTx.receive("#Public","DEMO NODE A","SIMULATION: Demo message. No radio traf
 void Simulator::event(Event e){
   using E=meshis::MeshiEvent;
   switch(e){
+    case NoiseQuiet:setSimNoise(-117);break;
+    case NoiseBusy:setSimNoise(-92);break;
+    case NoiseUnknown:setSimNoise(0);break;
     case GpsMoving:setSimMotion(true,90000,4000,0);break;
     case GpsStationary:setSimMotion(true,90000,0,0);break;
     case GpsStale:setSimMotion(true,90000,4000,9000);break;
     case GpsNoFix:setSimMotion(false,-1,-1,0);break;
-    case BotPartOne:receiveSimulated("#LU-Alert","DEMO BOT","SIMULATION Part 1/2: Diese lange Beispielantwort stammt aus einem lokalen Mock. Sie ist kein echter Messwert und keine authentifizierte Bot-Antwort. Mit Auf/Ab scrollen und Links/Rechts blaettern.");break;
-    case BotPartTwo:receiveSimulated("#LU-Alert","DEMO BOT","SIMULATION Part 2/2: Zweites Fragment. Empfang funktioniert auch bei gesperrten Tasten. Es findet kein Funkversand statt.");break;
+    case BotPartOne:receiveSimulated(meshis::txChannel(0),"DEMO BOT","SIMULATION Part 1/2: Diese lange Beispielantwort stammt aus einem lokalen Mock. Sie ist kein echter Messwert und keine authentifizierte Bot-Antwort. Mit Auf/Ab scrollen und Links/Rechts blaettern.");break;
+    case BotPartTwo:receiveSimulated(meshis::txChannel(0),"DEMO BOT","SIMULATION Part 2/2: Zweites Fragment. Empfang funktioniert auch bei gesperrten Tasten. Es findet kein Funkversand statt.");break;
     case MissingPublic:setSimChannel(0,"");break;
-    case RestoreChannels:for(unsigned i=0;i<4;++i)setSimChannel(i,meshis::txChannel(i));break;
+    case RestoreChannels:for(unsigned i=0;i<meshis::txChannelCount();++i)setSimChannel(i,meshis::txChannel(i));break;
     case TxFail:setSimTxFailure(true);break;
     case TxOk:setSimTxFailure(false);break;
     case Rx:++radio_driver.rx;nux.event(E::PacketReceived,simMillis);break;
@@ -191,7 +200,7 @@ quickTx.receive(channel,sender,text,simMillis,{authenticated,expected,correlated
 messages.receive(sender,text);nux.event(meshis::MeshiEvent::MessageReceived,simMillis);render();}
 void Simulator::setSimChannel(unsigned slot,const char* name){
 #if defined(MESHIS_V2)
-if(slot<4)snprintf(messageMesh.names[slot],32,"%s",name);
+if(slot<meshis::txChannelCount())snprintf(messageMesh.names[slot],32,"%s",name);
 #endif
 }
 void Simulator::setSimTxFailure(bool fail){
@@ -222,3 +231,5 @@ return -1;
 #endif
 }
 void Simulator::setSimMotion(bool fix,long course,long speed,uint32_t age){sensors.gps.fix=fix;sensors.gps.course=course;sensors.gps.speed=speed;sensors.gps.sample=simMillis-age;render();}
+
+void Simulator::setSimNoise(int dbm){radio_driver.noise=dbm;render();}

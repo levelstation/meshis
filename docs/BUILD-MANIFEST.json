@@ -1,49 +1,27 @@
 {
-  "release": "v0.2.0-alpha-rc1",
-  "display_name": "Meshis 2.0",
-  "date": "2026-11-21",
-  "board": "Original Seeed Studio Wio Tracker L1 Pro OLED",
-  "upstream_commit": "75b04ef06def54b348400cb1b138afb6749ffd4f",
-  "platformio": "6.1.19",
-  "host": "macOS arm64",
-  "simulator_minimum_macos": "14.0",
-  "simulator_sha256": "dd480b8cfe22c036876bdc33ecf86cde08a2d1b5a0665ef65cefc02f1a1335e0",
-  "simulator_checks": {
-    "simulator-build": "PASS",
-    "v2-review-frames": "PASS",
-    "v2-pixel-tests": "PASS",
-    "v2-asan-build": "PASS",
-    "v2-asan-tests": "PASS",
-    "actual-adapter-build": "PASS",
-    "actual-adapter-tests": "PASS",
-    "legacy-build": "PASS",
-    "legacy-733-pixel-tests": "PASS",
-    "final-v2-build": "PASS",
-    "native-layouts": "PASS",
-    "simulator_sha256": "dd480b8cfe22c036876bdc33ecf86cde08a2d1b5a0665ef65cefc02f1a1335e0"
-  },
-  "artifacts": [
-    {
-      "environment": "meshis2_wio_l1_pro",
-      "label": "Meshis-2.0-Wio-L1-Pro",
-      "application_bytes": 426308,
-      "ram_static_bytes": 151992,
-      "sha256": {
-        "DFU-VALIDATION.json": "3e6d05e7469d89800cf85f153d2f6496a94a5fa61959806c2608c197a595ae45",
-        "MEMORY-LAYOUT.json": "71f561c7d0e51bc41b5967fa4101d0ed13c2f6b3bb474efeb208f63527395919",
-        "Meshis-2.0-Wio-L1-Pro-DFU.zip": "431b990a0b500f3944826ff598e3f4bb661ef3e37fb07b53aef6fff75110fb58",
-        "Meshis-2.0-Wio-L1-Pro.bin": "01b2ce0d154547a375168664f2d6475107008337110c4de34dd5076f09e3b576",
-        "Meshis-2.0-Wio-L1-Pro.uf2": "9c210fb877ac0254fd4948937d2dad31bdff67ee42b653d79b5311f4d4e7bfb1",
-        "UF2-VALIDATION.json": "8830aac47027d7fb80e085844e69ae58923e7aa951cf6084ba279af47295bd47"
-      }
-    }
+  "version": "0.2 RC2",
+  "date": "2026-11-22",
+  "profile": "Meshis Public",
+  "quick_tx_channels": [
+    "#Public",
+    "#Test"
   ],
-  "application_only": true,
-  "softdevice_required": "S140 7.3.0 / FWID 0x0123",
-  "base_hardware": "USER_CONFIRMED; previous exact firmware unspecified",
-  "new_release_hardware": "UNTESTED",
+  "channel_keys_included": false,
+  "creates_device_channels": false,
+  "board": "Original Wio Tracker L1 Pro OLED",
+  "application_bytes": 425700,
+  "static_ram_bytes": 151992,
+  "upstream_commit": "75b04ef06def54b348400cb1b138afb6749ffd4f",
+  "noise_display": "Cached MeshCore estimate only; no sampling or calibration changes.",
+  "simulator": "macOS 14+ arm64, ad-hoc signed",
+  "hardware_base": "USER_CONFIRMED; previous build unspecified",
+  "new_rc2_hardware": "UNTESTED",
   "hardware_flashed": false,
-  "channel_profiles_exported": false,
-  "runtime_configuration": "Existing device configuration read at runtime; no private config embedded.",
-  "reproducibility": "Pinned upstream source and published patch; dependency version ranges prevent a bit-identical fresh-toolchain guarantee."
+  "heltec_4v2": "PLANNED; no build; do not use Wio images",
+  "files": {
+    "Meshis-2.0-Wio-L1-Pro-DFU.zip": "b3065b3f08e4a9566faeb198cbdc9e476a60ae9754eb6a778c0b30ae5964d341",
+    "Meshis-2.0-Wio-L1-Pro.bin": "35cef2d7bfe6933f98baec6ed5a40043f94f096a0f7aab976ba5eae3a9d4d194",
+    "Meshis-2.0-Wio-L1-Pro.uf2": "c72767b44aaf08c32b66ed29639f509979ed665200363d7e25aacc2fac1b805d",
+    "Meshis-Simulator-macOS-arm64.zip": "8981e0e2326a2e2c6d427f54e0438ffec4417a6dda5d01c03d8b296fd3a64255"
+  }
 }

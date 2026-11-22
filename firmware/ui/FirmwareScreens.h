@@ -460,9 +460,12 @@ public:
       display.setColor(1);display.setTextSize(1);
       if(_node_prefs->freq>0)snprintf(tmp,sizeof(tmp),"F %.3f MHz",_node_prefs->freq);else snprintf(tmp,sizeof(tmp),"F: not configured");
       display.drawTextEllipsized(0,20,128,tmp);
-      snprintf(tmp,sizeof(tmp),"R%lu T%lu E%lu",(unsigned long)radio_driver.getPacketsRecv(),(unsigned long)radio_driver.getPacketsSent(),(unsigned long)radio_driver.getTxFailures());display.drawTextEllipsized(0,30,128,tmp);
-      if(radio_driver.getPacketsRecv())snprintf(tmp,sizeof(tmp),"RSSI %.0f SNR %.1f",radio_driver.getLastRSSI(),radio_driver.getLastSNR());else snprintf(tmp,sizeof(tmp),"Signal: no RX yet");display.drawTextEllipsized(0,40,128,tmp);
-      auto* gps=_sensors->getLocationProvider();snprintf(tmp,sizeof(tmp),"GPS %s BLE %c",!_task->getGPSState()?"OFF":gps && gps->isValid()?"FIX":"NO FIX",_task->hasConnection()?'+':'-');display.drawTextEllipsized(0,52,128,tmp);return 1000;
+      snprintf(tmp,sizeof(tmp),"R%lu T%lu E%lu",(unsigned long)radio_driver.getPacketsRecv(),(unsigned long)radio_driver.getPacketsSent(),(unsigned long)radio_driver.getTxFailures());display.drawTextEllipsized(0,29,128,tmp);
+      if(radio_driver.getPacketsRecv())snprintf(tmp,sizeof(tmp),"RSSI %.0f SNR %.1f",radio_driver.getLastRSSI(),radio_driver.getLastSNR());else snprintf(tmp,sizeof(tmp),"Signal: no RX yet");display.drawTextEllipsized(0,38,128,tmp);
+      const int floor=radio_driver.getNoiseFloor();
+      if(floor<0 && floor>=-127)snprintf(tmp,sizeof(tmp),"Noise est: %d dBm",floor);else snprintf(tmp,sizeof(tmp),"Noise est: not ready");
+      display.drawTextEllipsized(0,47,128,tmp);
+      auto* gps=_sensors->getLocationProvider();snprintf(tmp,sizeof(tmp),"GPS %s BLE %c",!_task->getGPSState()?"OFF":gps && gps->isValid()?"FIX":"NO FIX",_task->hasConnection()?'+':'-');display.drawTextEllipsized(0,56,128,tmp);return 1000;
     } else if(_page==HomePage::SOUND){
       display.setColor(1);display.setTextSize(1);display.drawTextEllipsized(0,24,128,_task->isBuzzerQuiet()?"Summer: stumm":"Summer: aktiv");display.drawTextEllipsized(0,42,128,"Enter: umschalten");return 1000;
 #if ENV_INCLUDE_GPS == 1
@@ -538,7 +541,12 @@ public:
       sprintf(tmp, "TX: %ddBm", _node_prefs->tx_power_dbm);
       display.drawTextEllipsized(0,42,display.width(),tmp);
       display.setCursor(0, 53);
+      #if defined(MESHIS_V2)
+      const int floor=radio_driver.getNoiseFloor();
+      if(floor<0 && floor>=-127)snprintf(tmp,sizeof(tmp),"Noise est: %d dBm",floor);else snprintf(tmp,sizeof(tmp),"Noise est: not ready");
+#else
       sprintf(tmp, "Noise floor: %d", radio_driver.getNoiseFloor());
+#endif
       display.drawTextEllipsized(0,53,display.width(),tmp);
     } else if (_page == HomePage::BLUETOOTH) {
 #if defined(BRAND_CLASSIC_UI)

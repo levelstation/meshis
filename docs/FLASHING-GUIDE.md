@@ -1,24 +1,13 @@
-# Meshis 2.0 RC1 · Dateien für einen späteren Gerätetest
+# Meshis 0.2 RC2 · Pakethinweise
 
-**Es wurde nichts geflasht.** Die neue Version ist auf echter Hardware UNTESTED. Die vorherige Firmwarebasis ist vom Nutzer bestätigt. Vor einer späteren Installation die Hinweise in HARDWARE-COMPATIBILITY.md und die Prüfsummen lesen. Dieses Dokument führt keinen Upload aus.
+Ziel: ursprünglicher Wio Tracker L1 Pro OLED. Keine Pro-1W-, E-Ink- oder Heltec-Firmware. Neue RC2-Hardwaretests: UNTESTED; bisherige Gerätebasis vom Nutzer bestätigt. Es wurde nichts geflasht.
 
-## Die richtige Datei
+Kanalmenüs: #Public, #Test. Diese Namen sind keine Schlüssel oder vorkonfigurierten Gerätekanäle. Vorhandene Einstellungen werden nicht gelöscht oder ersetzt. Ein normaler Simulationsreset erhält Einstellungen; automatische Dateisystemformatierung bei Mountfehler ist im Anwendungsbuild deaktiviert.
 
-- Meshis-2.0-Wio-L1-Pro-DFU.zip: echte Anwendungs-DFU für den nRF52-Custom-Firmware-Pfad des MeshCore Configurator.
-- Jeweilige .uf2: Anwendungsimage für einen passenden UF2-Bootloader.
-- Jeweilige .bin: referenziertes Anwendungsimage, kein komplettes Flash-Abbild.
+Nur Dateien mit **-DFU.zip** sind echte Anwendungs-DFU-Pakete für den nRF52-Custom-Firmware-Pfad. Sie enthalten manifest.json, BIN und DAT direkt im ZIP. Simulator-, Source- und BUNDLE-ZIPs nicht als DFU auswählen. UF2 und BIN sind ebenfalls reine Anwendungsdateien, keine Bootloader-/SoftDevice- oder Speicherabbilder.
 
-Ein Dokumentations-/Quellcode-/Release-BUNDLE.zip ist **keine** DFU-Datei. Nur die ausdrücklich mit -DFU.zip bezeichnete Datei enthält manifest.json auf ZIP-Wurzelebene. Das behebt die frühere Paketart-Verwechslung „manifest.json not found“.
+Voraussetzung: passende Gerätevariante und S140 7.3.0 / FWID 0x0123. Vom Nutzer genannter Bootloader: 0.9.2-OTAFIX2.2-BP1.3. Individuelle INFO_UF2-Board-ID und installierte SoftDevice-Version wurden nicht ausgelesen. Die neue Anwendung ist gesondert zu testen.
 
-## Vor einem später freigegebenen Upload
+Prüfsummen im Downloadverzeichnis: `shasum -a 256 -c SHA256SUMS`. Vor einem tatsächlichen Flashvorgang stoppen und diesen gesondert freigeben. Keine Erase-, Factory-Reset-, SoftDevice- oder Bootloader-Pakete verwenden. Die Buildskripte besitzen keinen Upload-Schritt.
 
-1. Originales Wio Tracker L1 Pro OLED prüfen. Diese Images sind nicht für E-Ink oder Pro 1W vorgesehen.
-2. Vorhandene Firmwareversion, Bootloader-INFO und benötigte Konfiguration sichern, ohne einen Factory Reset auszulösen. Für RC1 wird S140 7.3.0 / FWID 0x0123 vorausgesetzt.
-3. Im entpackten Release-Verzeichnis `shasum -a 256 -c SHA256SUMS` ausführen. Gerätetests erst bei PASS beginnen.
-4. **Hier vor dem tatsächlichen Flashen stoppen.** Keine automatischen Upload-Skripte sind enthalten. Keine Erase-, Factory-Reset-, Bootloader- oder SoftDevice-Pakete verwenden.
-
-Nach einem separat freigegebenen Test: normaler Start, Anzeige, BLE, RX/TX, Kanäle und erhaltene Einstellungen prüfen; dann alle neuen 2.0-Funktionen. Eine lokale Sendebestätigung bedeutet keine erfolgreiche Zustellung beim Bot. Unbestätigte Botbefehle bleiben im Bericht als solche markiert.
-
-## Simulator ohne Gerätezugriff
-
-Meshis-Simulator-macOS-arm64.zip entpacken und Meshis Simulator.app öffnen. Apple Silicon, macOS 14+. Ad-hoc signiert, nicht notarisiert; keine Geräteverbindung. Pfeile, Enter und Escape bedienen den Tracker. 3× MENU/Escape innerhalb 1,2 s sperrt/entsperrt. Cmd+R setzt nur die Simulation zurück und erhält Einstellungen.
+Mac: ZIP entpacken, Meshis Simulator.app öffnen (Apple Silicon, macOS 14+). Ad-hoc signiert, nicht notarisiert. Pfeile/Enter/Escape steuern die vorhandenen Menüs, 3× MENU/Escape sperrt/entsperrt; Cmd+R setzt nur die Simulation zurück.

@@ -31,8 +31,8 @@ build_flags = ${env:WioTrackerL1_companion_radio_ble.build_flags}
   -D MESHIS_V2=1
   -D MESHIS_BOARD=1
   -D MESHIS_DEFAULT_PET=0
-  -D FIRMWARE_VERSION='"v0.2.0-alpha-rc1"'
-  -D FIRMWARE_BUILD_DATE='"21 Nov 2026"'
+  -D FIRMWARE_VERSION='"v0.2.0-alpha-rc2"'
+  -D FIRMWARE_BUILD_DATE='"22 Nov 2026"'
 '''
 target=upstream/'platformio.local.ini'
 if target.exists() and target.read_text()!=config:

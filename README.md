@@ -1,74 +1,50 @@
 # Meshis – kleine Begleiter fürs Mesh.
 
-**Meshis 2.0 · v0.2.0-alpha-rc1** entwickelt die bestehende Oberfläche für den ursprünglichen **Seeed Studio Wio Tracker L1 Pro mit OLED** weiter. Alle **16 Meshis**, darunter Einhorn und Eichhörnchen, bleiben erhalten.
+**Version 0.2 · v0.2.0-alpha-rc2 · öffentliches Standardprofil.** Alle 16 Meshis bleiben unverändert erhalten. Der gewählte Meshi bewacht bei der Dreifachklick-Sperre das Display mit einem animierten Pixel-Schloss.
 
-[Website und interaktive Galerie](https://meshis.nosrv.eu) · [Funktionen, Bedienung und vollständige Befehlstabelle](docs/MESHIS-2.md) · [Testbericht](TEST-REPORT.md)
+Diese Ausgabe enthält genau zwei Quick-TX-Kanalmenüs: **#Public** und **#Test**.
 
-- Quick TX: Kanal, Nachricht, exakte Vorschau, ausdrücklich bestätigen.
-- Live RX: Nachrichten und längere Antwortfragmente im Display lesen und scrollen.
-- Dreimal MENU in 1,2 Sekunden: Der gewählte Meshi bewacht die gesperrten Tasten. Pixel-Schloss und freudiges Entsperren laufen ohne blockierende Wartezeit.
-- Live-Ansicht für Funkstatistik, Frequenz, BLE und GPS. GPS-Kurs erscheint nur bei frischen Bewegungsdaten.
-- Firmware und Mac-Simulator verwenden denselben Menü-, Renderer-, Nachrichten- und Sperrcode.
+| Menü | Vorlagen |
+|---|---|
+| #Public | Hallo · Moin · Wie geht’s? · ACK 75 |
+| #Test | Ping · Test · Hop |
 
-Die bekannten Bot-Menüs enthalten `meteo`; nicht bestätigte Wunschtexte sind gekennzeichnet. RAD und Warnungen sind ohne nachgewiesene Befehlssyntax gegen Versand gesperrt. Gruppenmeldungen werden nicht allein aufgrund eines Namenspräfixes als Bot-Antwort ausgegeben. Einzelheiten stehen im [Funktionsbericht](docs/MESHIS-2.md).
+Das sind normale Textnachrichten; eine automatische Bot-Antwort wird nicht zugesagt. Das öffentliche Standardprofil enthält keine zusätzlichen regionalen Kanalmenüs und keine privaten Geräteprofile.
 
-## Simulator auf macOS
+[Website](https://meshis.nosrv.eu) · [GitHub](https://github.com/levelstation/meshis) · [Testbericht](TEST-REPORT.md) · [Heltec-Roadmap](docs/ROADMAP.md)
 
-Apple Silicon, macOS 14 oder neuer, Apple Command Line Tools. Die benötigten Grafik- und UI-Quellen liegen mit ihren Lizenzen im Repository.
+## Technik und Grenzen
+
+Ziel ist der ursprüngliche Seeed Studio Wio Tracker L1 Pro OLED: 128 × 64 Pixel, ein Bit und ein gemeinsamer 1024-Byte-Framebuffer. Firmware und Mac-App verwenden dieselben Menü-, Quick-TX-, RX-, Sperr- und Displayklassen. Die App ersetzt Hardware durch ausdrücklich simulierte lokale Adapter. Bestehende MeshCore-/BLE-/Funkprotokolle bleiben erhalten.
+
+Die Menünamen sind keine gespeicherten Kanalprofile. Ein Eintrag wird zur Laufzeit anhand des eindeutigen vorhandenen Namens gesucht und vor dem Senden einschließlich Schlüssel erneut geprüft. Die Anwendung erstellt, ändert und löscht keine Kanäle oder Schlüssel. Fehlt der passende Name, erscheint CHANNEL NOT CONFIGURED. Bereits bestehender Empfang und Companion-Funktionen bleiben erhalten.
+
+Quick TX: Kanal → Vorlage → exakter Text → Enter. DEVICE ACCEPTED bedeutet lokale Annahme, kein Empfangs-ACK. Keine automatischen Wiederholungen. Die letzten acht RX-Texte bleiben in begrenztem RAM, Auf/Ab scrollt, Links/Rechts blättert. Gruppen-Absender werden nicht allein anhand eines Namenspräfixes als verifizierter Bot ausgegeben.
+
+Drei entprellte MENU-Drücke innerhalb von 1200 ms sperren oder entsperren. Einzeldrücke werden bis zum Ende des Zeitfensters zurückgehalten. Während der Sperre sind Navigation und neue Quick-TX-Aufträge blockiert; RX, GPS und Hintergrundfunktionen laufen weiter. Normaler Reset erhält Einstellungen und die bisherigen Dateischlüssel.
+
+Radio und Live Radio / GPS zeigen `Noise est: … dBm`. Das ist der bereits vom MeshCore-Treiber geschätzte Grundrauschpegel, keine neue Messung durch das Menü. Die Anzeige liest nur `getNoiseFloor()`; sie startet weder Scan noch Kalibrierung und ändert keine Funkparameter. Vor einer gültigen Schätzung erscheint `not ready`. Der vorhandene Treiber mittelt 64 ruhige Empfangsproben und begrenzt die Schätzung nach unten auf -120 dBm. Der Wert kann nach einer Kalibrierung unverändert bleiben und ist kein laufender Spektrumanalysator. RSSI/SNR des letzten Pakets sind davon getrennte Werte.
+
+GPS-Kurs ist ein Bewegungskurs aus frischen gültigen RMC-Daten, kein Magnetkompass. Ohne Fix, im Stillstand und nach acht Sekunden werden keine aktuellen Richtungen vorgetäuscht. UTC und Anzeigezeit bleiben getrennt; Europe/Luxembourg ist Standard.
+
+Die bisherige Gerätebasis einschließlich Funk, BLE, Display und Bootloader wurde vom Nutzer bestätigt. Der genaue alte Build wurde nicht angegeben. Neue RC2-Dateien sind auf echter Hardware UNTESTED. Es wurde kein Gerät geflasht, gelöscht, zurückgesetzt oder umkonfiguriert. Die neue App verhindert automatische Dateisystemformatierung bei einem Mountfehler.
+
+## Build und Start
+
+Apple Silicon, macOS 14+, Apple Command Line Tools. Keine zusätzliche GUI-Bibliothek nötig; bestehende AppKit-App und vendorte Grafikquellen.
 
 ```sh
 sh simulator/build.sh
 ./meshis-simulator
-```
-
-App: `simulator/dist/Meshis Simulator.app`. Ad-hoc signiert, nicht bei Apple notarisiert. Der Simulator öffnet keine Geräteschnittstelle und sendet keine echten Funkpakete. Testereignisse rechts simulieren unter anderem RX, Bot-Fragmente, TX-Fehler sowie bewegte, stehende und veraltete GPS-Daten. Fehlende Kanäle und umsortierte Kanalpositionen sind in den Tests enthalten.
-
-Pfeile = Joystick, Enter = Joystick-Druck, Escape = MENU. **3× Escape oder MENU in 1200 ms** sperrt/entsperrt. Ein einzelner MENU-Klick wird bis zum Ende des Zeitfensters zurückgehalten. Cmd+R führt einen normalen Simulationsreset aus und erhält die gespeicherten Demo-Einstellungen. Das Board-Menü enthält alle 16 Figuren auf drei Seiten.
-
-```sh
 ./meshis-simulator --self-test build/screenshots
-./meshis-simulator --layout-screenshots
 SIM_SANITIZE=1 sh simulator/build.sh
 ./build/meshis-simulator-asan --self-test build/asan
 ```
 
-Die unveränderten bisherigen 733 Pixelreferenzen bleiben über den Regression-Build ausführbar:
+Pfeile = Joystick, Enter = Joystick-Druck, Escape = MENU. 3× Escape in 1,2 s sperrt/entsperrt. Cmd+R setzt nur die Simulation zurück. Der Simulator öffnet keine Geräteschnittstelle.
 
-```sh
-MESHIS_LEGACY_UI=1 sh simulator/build.sh
-./meshis-simulator --self-test build/legacy
-sh simulator/build.sh
-```
+Firmware: Python-Umgebung mit PlatformIO 6.1.19 und pyelftools, dann `sh tools/build_firmware.sh`. Das Skript kompiliert ausschließlich und validiert BIN, UF2, echte Anwendungs-DFU, CRC und Speicherbereiche. Kein Upload-Schritt. Grundlage: MeshCore-Commit 75b04ef06def54b348400cb1b138afb6749ffd4f, S140 7.3.0 / FWID 0x0123. Abhängigkeiten mit Versionsbereichen und Compiler-Zeitstempel verhindern eine allgemeine Zusage bitidentischer Neubauten.
 
-## Firmware bauen, ohne Flashen
+UF2-Family-ID 0xADA52840 ist keine Board-ID. Die individuelle INFO_UF2-Board-ID und installierte SoftDevice-Version wurden nicht ausgelesen. E-Ink und Pro 1W sind nicht unterstützt. Der individuelle OLED-Controller ist nicht anhand einer Panelkennzeichnung nachgewiesen.
 
-Die Integration basiert auf MeshCore-Commit `75b04ef06def54b348400cb1b138afb6749ffd4f`. Das Setup prüft diesen Commit, wendet den veröffentlichten Patch an und kopiert dieselben Header wie der Simulator. Bestehende abweichende Quellcodeänderungen werden nicht per Reset gelöscht.
-
-In einer eigenen Python-Umgebung PlatformIO **6.1.19** und `pyelftools` installieren, dann:
-
-```sh
-sh tools/build_firmware.sh
-```
-
-Ergebnis unter `build/firmware`: Anwendungs-BIN, UF2, echte DFU-ZIP mit Manifest, Prüfsummen und Layoutprüfung. Das Skript besitzt keinen Upload-Schritt. Ziel ist der ursprüngliche OLED-L1-Pro mit S140 7.3.0. Abhängigkeiten des gepinnten Upstream-Projekts enthalten teilweise Versionsbereiche; ein bitidentischer Build aus einer frisch heruntergeladenen Toolchain wird nicht zugesichert.
-
-Gerät, Funk, BLE, Display und Bootloader der bisherigen Firmware wurden am 21.11.2026 vom Nutzer bestätigt. Die neue 2.0-Anwendung ist separat zu prüfen; der Agent hat kein Gerät geflasht, gelöscht oder umkonfiguriert. Die Website stellt keine Geräteverbindung her.
-
-## Gemeinsamer Code und Grafiken
-
-`firmware/core/`, `firmware/ui/` und `firmware/display/` enthalten Zustandsmaschinen, Menüs, Pixelgrafiken und Framebuffer. Kanalzuordnung und Versand verwenden die vorhandenen öffentlichen MeshCore-Schnittstellen; Funk- und Companion-Protokoll bleiben erhalten. Die kanonischen Namen heißen Meshi/Meshis, etwa `MeshiRenderer.h`, `MeshiSprites.h` und `assets/meshi_board/catalog.json`. Historische Git-Commits bleiben als Historie erhalten.
-
-```sh
-python3 tools/generate_meshi_catalog.py --check
-sh tools/render-gallery.sh
-```
-
-Die 16 Figuren benötigen zusammen 512 Bitmap-Bytes. Die Website verwendet daraus erzeugte SVG-Frames; sie implementiert keine zweite Firmware-Menüsteuerung. Die Sperranimation auf der Website stammt aus echten Simulator-Framebuffer-Fixtures. Das statische Websiteverzeichnis ist `docs/`; das aktuelle Hosting liegt bei ChatGPT Sites.
-
-## Datenschutz und Quellen
-
-Keine privaten Geräteprofile, persönlichen IP-Adressen, Gerätekennungen, Kontakte, Kanalschlüssel, Standorte oder alten Build-Logs werden veröffentlicht. Die vier Quick-TX-Kanalnamen und der Bot-Name sind ausdrücklich vorgegebene Funktionsbeispiele; sie sind keine exportierte Tracker-Konfiguration. Simulatorwerte sind lokale Demodaten. Tatsächliche Funkkonfiguration und GPS-Position werden erst auf dem jeweiligen Gerät zur Laufzeit gelesen. [Datenschutz](PRIVACY.md).
-
-[Offizielle Seeed-Dokumentation](https://wiki.seeedstudio.com/wio_tracker_l1_node/): 1,3-Zoll-OLED mit 128 × 64 Pixeln, nRF52840, SX1262, Bluetooth, L76K und eingebautem Akku. Ein Magnetometer ist dort nicht ausgewiesen; GPS-Bewegungskurs ist kein Magnetkompass. E-Ink und Pro 1W sind eigene Hardwarevarianten. Der tatsächlich verbaute OLED-Controller ist im Projekt weiterhin nicht anhand einer individuellen Panelkennzeichnung nachgewiesen.
-
-MeshCore: MIT, siehe `LICENSE` und `vendor/meshcore/LICENSE`. Adafruit GFX: BSD, siehe `simulator/vendor/adafruit-gfx/license.txt`. Unabhängiges Community-Projekt, keine offizielle Seeed-Firmware.
+[Offizielle Hardwaredokumentation](https://wiki.seeedstudio.com/wio_tracker_l1_node/) · MeshCore MIT, siehe LICENSE und vendor/meshcore/LICENSE · Adafruit GFX BSD, siehe simulator/vendor/adafruit-gfx/license.txt. Unabhängiges Community-Projekt.

@@ -67,9 +67,14 @@ struct SensorManager {LocationProvider gps;void querySensors(int,CayenneLPP&){}L
 struct Board {uint16_t battery=3984;uint16_t getBattMilliVolts()const{return battery;}};
 struct Radio {
   uint32_t rx=0,tx=0,errors=0;
+#if defined(MESHIS_V2)
+  int noise=0;
+#else
+  int noise=-117;
+#endif
   uint32_t getPacketsRecv()const{return rx;}uint32_t getPacketsSent()const{return tx;}
   uint32_t getTxFailures()const{return errors;}float getLastRSSI()const{return -96;}
-  float getLastSNR()const{return 7.25;}int getNoiseFloor()const{return -117;}
+  float getLastSNR()const{return 7.25;}int getNoiseFloor()const{return noise;}
 };
 static Board board;static Radio radio_driver;static SensorManager sensors;static mesh::RTCClock rtc_clock;
 struct Mesh {
@@ -83,12 +88,13 @@ static Mesh the_mesh;
 // Same public adapter contract as MeshCoreMessages; no radio or private keys.
 struct MeshCoreMessages {
 #if defined(MESHIS_V2)
-  char names[4][32]={"#Public","#Test","#LU-Alert","#trafic"};
+  char names[8][32]={};
+  MeshCoreMessages(){for(unsigned i=0;i<meshis::txChannelCount();++i)snprintf(names[i],32,"%s",meshis::txChannel(i));}
   char prepared[32]={},lastText[193]={},lastChannel[32]={};int selected=-1;bool fail=false;
-  unsigned channelCount()const{return 4;}unsigned contactCount()const{return 2;}
-  bool prepareNamed(const char* name){selected=-1;unsigned matches=0;for(int i=0;i<4;++i)if(meshis::sameChannel(name,names[i])){selected=i;++matches;}if(matches!=1){selected=-1;return false;}snprintf(prepared,sizeof(prepared),"%s",names[selected]);return true;}
-  bool prepareChannel(unsigned n){return n<4 && prepareNamed(names[n]);}
-  void itemName(bool channel,unsigned n,char* out,size_t cap)const{snprintf(out,cap,"%s",channel?(n<4?names[n]:""):(n?"DEMO NODE B":"DEMO NODE A"));}
+  unsigned channelCount()const{return meshis::txChannelCount();}unsigned contactCount()const{return 2;}
+  bool prepareNamed(const char* name){selected=-1;unsigned matches=0;for(unsigned i=0;i<meshis::txChannelCount();++i)if(meshis::sameChannel(name,names[i])){selected=i;++matches;}if(matches!=1){selected=-1;return false;}snprintf(prepared,sizeof(prepared),"%s",names[selected]);return true;}
+  bool prepareChannel(unsigned n){return n<meshis::txChannelCount() && prepareNamed(names[n]);}
+  void itemName(bool channel,unsigned n,char* out,size_t cap)const{snprintf(out,cap,"%s",channel?(n<meshis::txChannelCount()?names[n]:""):(n?"DEMO NODE B":"DEMO NODE A"));}
   void preparedName(char* out,size_t cap)const{snprintf(out,cap,"%s",prepared);}
   bool sendPreparedChannel(const char* text){if(meshis::keyLock().blocks() || fail || selected<0 || strcmp(prepared,names[selected]))return false;++the_mesh.sends;snprintf(lastText,sizeof(lastText),"%s",text);snprintf(lastChannel,sizeof(lastChannel),"%s",prepared);return true;}
 #else

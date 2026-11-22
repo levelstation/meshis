@@ -82,7 +82,7 @@ index 839d495..988af16 100644
        MESH_DEBUG_PRINTLN("CustomLFS_QSPIFlash: failed to initialize");
      } else {
 diff --git a/examples/companion_radio/ui-new/UITask.cpp b/examples/companion_radio/ui-new/UITask.cpp
-index bc25de7..34f97c5 100644
+index bc25de7..82f6b39 100644
 --- a/examples/companion_radio/ui-new/UITask.cpp
 +++ b/examples/companion_radio/ui-new/UITask.cpp
 @@ -3,6 +3,29 @@
@@ -937,7 +937,7 @@ index bc25de7..34f97c5 100644
    if (c != 0 && curr) {
      curr->handleInput(c);
      _auto_off = millis() + AUTO_OFF_MILLIS;   // extend auto-off timer
-@@ -1018,13 +423,38 @@ void UITask::loop() {
+@@ -1018,13 +423,31 @@ void UITask::loop() {
    if (buzzer.isPlaying())  buzzer.loop();
  #endif
  
@@ -959,14 +959,7 @@ index bc25de7..34f97c5 100644
 +#if defined(MESHIS_BOARD)
 +        delay_millis=meshis::renderLock(*_display,meshis::keyLock(),_node_prefs->meshis_pet,millis());
 +#else
-+        // Classic LU Alert keeps its no-avatar identity, including the lock view.
-+        _display->setColor(1);_display->setTextSize(1);
-+        _display->drawTextCentered(64,0,meshis_brand::menuLabel());
-+        const auto phase=meshis::keyLock().phase();
-+        const bool opening=phase==meshis::KeyLock::Phase::Opening || phase==meshis::KeyLock::Phase::Joy;
-+        meshis::pixelLock(*_display,59,22,opening?2:0);
-+        _display->drawTextCentered(64,45,opening?"KEYS UNLOCKED":"KEYS LOCKED");
-+        _display->drawTextCentered(64,56,"3x MENU TO UNLOCK");delay_millis=100;
++        delay_millis=meshis::renderClassicLock(*_display,meshis::keyLock(),meshis_brand::menuLabel(),millis());
 +#endif
 +      }else
 +#endif
@@ -979,7 +972,7 @@ index bc25de7..34f97c5 100644
          _display->setTextSize(1);
          int y = _display->height() / 3;
          int p = _display->height() / 32;
-@@ -1062,6 +492,7 @@ void UITask::loop() {
+@@ -1062,6 +485,7 @@ void UITask::loop() {
  #ifdef AUTO_SHUTDOWN_MILLIVOLTS
    if (millis() > next_batt_chck) {
      uint16_t milliVolts = getBattMilliVolts();
@@ -987,7 +980,7 @@ index bc25de7..34f97c5 100644
      if (milliVolts > 0 && milliVolts < AUTO_SHUTDOWN_MILLIVOLTS) {
        if(!board.isExternalPowered()) {
          if (_display != NULL) {
-@@ -1094,6 +525,9 @@ char UITask::checkDisplayOn(char c) {
+@@ -1094,6 +518,9 @@ char UITask::checkDisplayOn(char c) {
  }
  
  char UITask::handleLongPress(char c) {

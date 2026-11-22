@@ -91,7 +91,7 @@ static bool renderLayouts=false;
   self.pages=[[LabPopup alloc]initWithFrame:NSZeroRect pullsDown:NO];for(int i=0;i<Simulator::pageCount();++i)[self.pages addItemWithTitle:[NSString stringWithUTF8String:Simulator::pageName(i)]];
   self.pages.target=self;self.pages.action=@selector(pageChanged:);
   NSMutableArray<NSView*>* eventViews=[NSMutableArray array];
-  NSArray* events=@[@"Idle",@"RX-Paket",@"TX-Paket",@"Neue Nachricht",@"Bluetooth verbunden",@"Bluetooth getrennt",@"Akku niedrig",@"Akku lädt",@"Funkfehler",@"Keine Funkaktivität (+5 min)",@"Ereignisstatus normalisieren",@"GPS-Kurs: Bewegung (SIM)",@"GPS-Kurs: Stillstand (SIM)",@"GPS-Kurs: veraltet (SIM)",@"GPS: kein Fix (SIM)",@"Bot RX Teil 1 (SIM)",@"Bot RX Teil 2 (SIM)",@"Public fehlt (SIM)",@"Demo-Kanaele wiederherstellen",@"TX-Fehler aktiv (SIM)",@"TX-Fehler aus (SIM)"];
+  NSArray* events=@[@"Idle",@"RX-Paket",@"TX-Paket",@"Neue Nachricht",@"Bluetooth verbunden",@"Bluetooth getrennt",@"Akku niedrig",@"Akku lädt",@"Funkfehler",@"Keine Funkaktivität (+5 min)",@"Ereignisstatus normalisieren",@"GPS-Kurs: Bewegung (SIM)",@"GPS-Kurs: Stillstand (SIM)",@"GPS-Kurs: veraltet (SIM)",@"GPS: kein Fix (SIM)",@"RX-Langtext Teil 1 (SIM)",@"RX-Langtext Teil 2 (SIM)",@"Public fehlt (SIM)",@"Demo-Kanaele wiederherstellen",@"TX-Fehler aktiv (SIM)",@"TX-Fehler aus (SIM)",@"Rauschpegel ruhig (SIM)",@"Rauschpegel hoch (SIM)",@"Rauschpegel unbekannt (SIM)"];
   for(NSInteger i=0;i<events.count;++i)[eventViews addObject:[self button:events[i] action:@selector(eventPressed:) tag:i]];
   NSButton* up=[self button:@"↑" action:@selector(joystick:) tag:0xb5];
   NSButton* down=[self button:@"↓" action:@selector(joystick:) tag:0xb6];

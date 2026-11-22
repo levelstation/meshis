@@ -1,25 +1,17 @@
 {
-  "date": "2026-11-21",
-  "version": "v0.2.0-alpha-rc1",
-  "source_file_review": "PASS",
-  "private_data_findings": 0,
-  "review_scope": "Curated public source, docs, metadata-free generated images, simulator ZIP and generic application-only firmware files; no device data or build logs.",
-  "explicit_public_exceptions": [
-    "User-provided GitHub project URL",
-    "meshis.nosrv.eu public project URL",
-    "NOSRV service label and four requested Quick TX channel names / fixture names"
+  "date": "2026-11-22",
+  "profile": "Meshis",
+  "current_menu_names": [
+    "#Public",
+    "#Test"
   ],
-  "download_review": {
-    "zip_integrity": "PASS",
-    "ad_hoc_signature": "PASS",
-    "private_strings_and_home_paths": "NO MATCHES",
-    "no_existing_device_profile_imported": true
-  },
-  "gallery_images": "288 text-only SVG frames from shared renderer; lock APNG/static PNG from simulator framebuffer tests, no EXIF or personal device photos.",
-  "firmware": "Application-only DFU/BIN/UF2 validated; no personal configuration imported.",
-  "git_and_hosting_account_metadata": "GitHub controls attribution; existing remote history not rewritten.",
-  "previous_release_files": "489 UNCHANGED",
-  "hardware_base": "USER_CONFIRMED; previous exact build unspecified",
-  "new_2_hardware": "UNTESTED",
-  "device_access": false
+  "private_device_profiles_exported": false,
+  "device_access": false,
+  "hardware_flashed": false,
+  "scope": "Current reviewed source and generated downloads; historical commits and old local archives are retained.",
+  "permitted_public_labels": "Explicitly requested profile names and public project URLs only.",
+  "shared_logic_files": "Byte-identical menu, QuickTx, lock state and framebuffer headers across both projects.",
+  "personal_paths_or_secrets": "No findings in publication scan; account attribution is controlled by GitHub.",
+  "noise": "Existing MeshCore estimate read only; no radio protocol, scanning or calibration changes.",
+  "heltec_4v2": "Roadmap only"
 }
