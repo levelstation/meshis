@@ -171,7 +171,7 @@ static bool renderLayouts=false;
     }
     for(int index=0;index<(Simulator::meshiUi()?5:3);++index){
       [self.window setContentSize:index==0?NSMakeSize(1000,700):NSMakeSize(1240,840)];
-      if(Simulator::meshiUi() && index>=2)sim->selectMeshi((index-2)*6);sim->goToPage(0);if(index>=2){for(int page=0;page<Simulator::pageCount();++page)if(!strcmp(Simulator::pageName(page),"Board"))sim->goToPage(page);}[self sync];[self.window.contentView layoutSubtreeIfNeeded];[self.window.contentView displayIfNeeded];
+      if(Simulator::meshiUi() && index>=2)sim->selectMeshi((index-2)*6);sim->goToPage(0);if(index>=2){for(int page=0;page<Simulator::pageCount();++page)if(!strcmp(Simulator::pageName(page),"Board")){sim->goToPage(page);if(index>=3)sim->key(13);}}[self sync];[self.window.contentView layoutSubtreeIfNeeded];[self.window.contentView displayIfNeeded];
       NSView* view=self.window.contentView;NSBitmapImageRep* bitmap=[view bitmapImageRepForCachingDisplayInRect:view.bounds];[view cacheDisplayInRect:view.bounds toBitmapImageRep:bitmap];
       [[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}]writeToFile:[directory stringByAppendingPathComponent:[NSString stringWithFormat:@"layout-%d.png",index]] atomically:YES];
       auto fit=fitOLED((int)self.oled.bounds.size.width,(int)self.oled.bounds.size.height,(int)self.oled.requestedZoom);

@@ -23,7 +23,7 @@ python3 - <<'PLIST'
 import plistlib
 from pathlib import Path
 path=Path('simulator/dist/Meshis Simulator.app/Contents/Info.plist')
-with path.open('wb') as f:plistlib.dump({'CFBundleExecutable':'meshis-simulator','CFBundleIdentifier':'org.meshis.simulator','CFBundleName':'Meshis Simulator','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.2.0','CFBundleVersion':'2026112203','LSMinimumSystemVersion':'14.0','NSHighResolutionCapable':True},f)
+with path.open('wb') as f:plistlib.dump({'CFBundleExecutable':'meshis-simulator','CFBundleIdentifier':'org.meshis.simulator','CFBundleName':'Meshis Simulator','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.2.0','CFBundleVersion':'2026112204','LSMinimumSystemVersion':'14.0','NSHighResolutionCapable':True},f)
 PLIST
 codesign --force --sign - 'simulator/dist/Meshis Simulator.app' >/dev/null 2>&1
 codesign --verify --deep --strict 'simulator/dist/Meshis Simulator.app'

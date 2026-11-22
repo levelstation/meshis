@@ -1,0 +1,29 @@
+{
+  "result": "PASS",
+  "native_wasm_framebuffer_comparisons": 1872,
+  "functional_assertion_groups": 134,
+  "pages": [
+    "Home",
+    "Timezone",
+    "Board",
+    "Animations",
+    "Live Radio / GPS",
+    "Sound",
+    "GPS Course",
+    "Diagnostics",
+    "Messages",
+    "Recent adverts",
+    "Radio",
+    "Bluetooth",
+    "Advertise",
+    "GPS",
+    "Discovery"
+  ],
+  "pets": 16,
+  "channel_count": 2,
+  "framebuffer_bytes": 1024,
+  "wasm_memory_bytes": 16777216,
+  "hardware_tests": "UNTESTED",
+  "device_access": false,
+  "wasm_sha256": "f87a1c06ee45490687b4c33f1c51232b8cbf603a6ef6817cf875384341cc85df"
+}

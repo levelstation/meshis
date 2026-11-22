@@ -10,7 +10,7 @@
   "hardware_flashed": false,
   "scope": "Current reviewed source and generated downloads; historical commits and old local archives are retained.",
   "permitted_public_labels": "Explicitly requested profile names and public project URLs only.",
-  "shared_logic_files": "Byte-identical menu, QuickTx, lock state and framebuffer headers across both projects.",
+  "shared_logic_files": "QuickTx, MenuActions, KeyLock, LockRenderer and FramebufferDisplay shared byte-for-byte; Meshis RC4 adds the Board child selector to FirmwareScreens. Browser compiles each project\u2019s C++ directly.",
   "personal_paths_or_secrets": "No findings in publication scan; account attribution is controlled by GitHub.",
   "noise": "Existing MeshCore estimate read only; no radio protocol, scanning or calibration changes.",
   "heltec_4v2": "Roadmap only",
@@ -19,5 +19,12 @@
     "2": "Sound toggle after 1200 ms window",
     "3": "Lock/unlock, no sound change"
   },
-  "release": "0.2 RC3"
+  "release": "0.2 RC4",
+  "browser_simulator": {
+    "compiler": "Emscripten 7.0.1",
+    "device_access": false,
+    "fixed_heap_bytes": 16777216,
+    "framebuffer_bytes": 1024,
+    "native_wasm_pixel_comparisons": 1872
+  }
 }

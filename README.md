@@ -1,6 +1,6 @@
 # Meshis – kleine Begleiter fürs Mesh.
 
-**Version 0.2 · v0.2.0-alpha-rc3 · öffentliches Standardprofil.** Alle 16 Meshis bleiben unverändert erhalten. Der gewählte Meshi bewacht bei der Dreifachklick-Sperre das Display mit einem animierten Pixel-Schloss.
+**Version 0.2 · v0.2.0-alpha-rc4 · öffentliches Standardprofil.** Alle 16 Meshis bleiben unverändert erhalten. Der gewählte Meshi bewacht bei der Dreifachklick-Sperre das Display mit einem animierten Pixel-Schloss.
 
 Diese Ausgabe enthält genau zwei Quick-TX-Kanalmenüs: **#Public** und **#Test**.
 
@@ -27,7 +27,7 @@ Radio und Live Radio / GPS zeigen `Noise est: … dBm`. Das ist der bereits vom 
 
 GPS-Kurs ist ein Bewegungskurs aus frischen gültigen RMC-Daten, kein Magnetkompass. Ohne Fix, im Stillstand und nach acht Sekunden werden keine aktuellen Richtungen vorgetäuscht. UTC und Anzeigezeit bleiben getrennt; Europe/Luxembourg ist Standard.
 
-Die bisherige Gerätebasis einschließlich Funk, BLE, Display und Bootloader wurde vom Nutzer bestätigt. Der genaue alte Build wurde nicht angegeben. Neue RC3-Dateien sind auf echter Hardware UNTESTED. Es wurde kein Gerät geflasht, gelöscht, zurückgesetzt oder umkonfiguriert. Die neue App verhindert automatische Dateisystemformatierung bei einem Mountfehler.
+Die bisherige Gerätebasis einschließlich Funk, BLE, Display und Bootloader wurde vom Nutzer bestätigt. Der genaue alte Build wurde nicht angegeben. Neue RC4-Dateien sind auf echter Hardware UNTESTED. Es wurde kein Gerät geflasht, gelöscht, zurückgesetzt oder umkonfiguriert. Die neue App verhindert automatische Dateisystemformatierung bei einem Mountfehler.
 
 ## Build und Start
 
@@ -48,3 +48,25 @@ Firmware: Python-Umgebung mit PlatformIO 6.1.19 und pyelftools, dann `sh tools/b
 UF2-Family-ID 0xADA52840 ist keine Board-ID. Die individuelle INFO_UF2-Board-ID und installierte SoftDevice-Version wurden nicht ausgelesen. E-Ink und Pro 1W sind nicht unterstützt. Der individuelle OLED-Controller ist nicht anhand einer Panelkennzeichnung nachgewiesen.
 
 [Offizielle Hardwaredokumentation](https://wiki.seeedstudio.com/wio_tracker_l1_node/) · MeshCore MIT, siehe LICENSE und vendor/meshcore/LICENSE · Adafruit GFX BSD, siehe simulator/vendor/adafruit-gfx/license.txt. Unabhängiges Community-Projekt.
+
+## Board als Untermenü
+
+Links/Rechts wechselt am Board-Eintrag direkt zum vorherigen/nächsten Hauptbildschirm. ENTER öffnet die Figuren-Auswahl; erst dort blättert der Joystick durch die 16 Meshis. ENTER speichert die Auswahl und kehrt zu Home zurück. Einmal MENU/Escape verwirft die Vorschau und kehrt nach dem 1200-ms-Gestenfenster zum Board-Eintrag zurück. Kein Durchklicken aller Figuren mehr, um das Board zu verlassen.
+
+## Websimulation
+
+[Im Browser ausprobieren](https://meshis.nosrv.eu/simulator/). Die Browser-Version kompiliert denselben C++-Simulator nach WebAssembly: FirmwareScreens, QuickTx, KeyLock, MenuActions, LockRenderer und FramebufferDisplay. JavaScript skaliert ausschließlich den 1024-Byte-Framebuffer und reicht Eingaben weiter. Keine zweite Implementierung der Firmwaremenüs oder Animationen.
+
+Pfeile/Enter/Escape sowie die sichtbaren Joystick-, ENTER-, MENU- und RESET-Tasten bedienen die Simulation. 2× MENU schaltet den simulierten Summerstatus; 3× sperrt/entsperrt. Kein Audio im Browser. Die Ereignisse sind lokale Testdaten, ohne echte Funk-, BLE-, GPS- oder Geräteschnittstelle. RESET erhält die Einstellungen dieser Sitzung; Neuladen startet eine neue Sitzung. Pause friert auch die Simulationszeit und Gestenerkennung ein.
+
+Mit einem aktivierten offiziellen Emscripten-SDK **7.0.1**, Python 3 und Node.js:
+
+```sh
+sh tools/build_web_simulator.sh
+sh tools/test_web_simulator.sh
+python3 -m http.server 4176 --directory docs
+```
+
+Dann `http://localhost:4176/simulator/` öffnen. Für die native Vergleichsreferenz ist ein C++17-Compiler erforderlich. SDK-Installation: im offiziellen emsdk-Checkout `./emsdk install 7.0.1`, `./emsdk activate 7.0.1 --embedded`, dann `source ./emsdk_env.sh`. Kein SDK und keine Zugangsdaten sind im Projekt enthalten. Die Ausgabe ist statisch hostbar. Build- und Quellprüfsummen stehen in `docs/simulator/BUILD-MANIFEST.json`.
+
+1872 native/WASM-Pixelvergleiche bestanden; Details in [Web-Testbericht](docs/simulator/TEST-REPORT.md). Der WebAssembly-Heap ist auf 16 MiB begrenzt; der OLED-Framebuffer bleibt 1024 Byte. Dies ist keine Emulation des nRF52840, Funkchips oder Bootloaders.

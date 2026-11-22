@@ -136,6 +136,9 @@ class HomeScreen : public UIScreen {
   bool _shutdown_init;
 #if defined(MESHIS_BOARD)
   uint8_t _meshi_cursor=0;
+#if defined(MESHIS_V2)
+  bool _meshi_picker=false;
+#endif
 #endif
 #if defined(BRAND_CLASSIC_UI)
   bool _classic_menu=false;
@@ -272,6 +275,9 @@ public:
   void selectPage(int index){if(index>=0 && index<Count){_page=index;_classic_menu=false;
 #if defined(MESHIS_BOARD)
       _meshi_cursor=meshis_pets::valid(_node_prefs->meshis_pet);
+#if defined(MESHIS_V2)
+      _meshi_picker=false;
+#endif
 #endif
     }}
 #endif
@@ -307,6 +313,15 @@ public:
 #endif
       default:return "Unknown";
     }
+  }
+  bool meshiPickerActive()const{
+#if defined(MESHIS_BOARD) && defined(MESHIS_V2)
+    return _page==HomePage::BOARD && _meshi_picker;
+#elif defined(MESHIS_BOARD)
+    return _page==HomePage::BOARD;
+#else
+    return false;
+#endif
   }
   HomeScreen(UITask* task, mesh::RTCClock* rtc, SensorManager* sensors, NodePrefs* node_prefs)
      : _task(task), _rtc(rtc), _sensors(sensors), _node_prefs(node_prefs), _page(0),
@@ -368,7 +383,21 @@ public:
     }
 #endif
 #if defined(MESHIS_BOARD)
-    if(_page==HomePage::BOARD){meshis_pets::board(display,_meshi_cursor,meshis_pets::valid(_node_prefs->meshis_pet));return 1000;}
+    if(_page==HomePage::BOARD){
+#if defined(MESHIS_V2)
+      if(!_meshi_picker){
+        const uint8_t pet=meshis_pets::valid(_node_prefs->meshis_pet);
+        display.setColor(1);display.setTextSize(1);
+        display.drawTextEllipsized(0,0,128,"BOARD / MESHIS");display.fillRect(0,11,128,1);
+        meshis_pets::sprite(display,pet,8,19,2);
+        display.drawTextEllipsized(50,23,78,meshis_pets::name(pet));
+        display.drawTextEllipsized(50,36,78,"Ausgewaehlt");
+        display.drawTextEllipsized(0,56,128,"ENTER: Meshis waehlen");
+        return 1000;
+      }
+#endif
+      meshis_pets::board(display,_meshi_cursor,meshis_pets::valid(_node_prefs->meshis_pet));return 1000;
+    }
     if(_page==HomePage::FIRST){
       display.setColor(1);display.setTextSize(1);display.drawTextEllipsized(0,0,84,"MESHIS");renderBatteryIndicator(display,nuxBatteryMv);
       display.fillRect(0,11,128,1);const uint8_t pet=meshis_pets::valid(_node_prefs->meshis_pet);
@@ -756,22 +785,43 @@ public:
       else if(key==KEY_ENTER || key==KEY_SELECT){_page=menuPage(_classic_selection);_classic_menu=false;
 #if defined(MESHIS_BOARD)
         _meshi_cursor=meshis_pets::valid(_node_prefs->meshis_pet);
+#if defined(MESHIS_V2)
+        _meshi_picker=false;
+#endif
 #endif
       }
       return true;
     }
 #endif
 #if defined(MESHIS_BOARD)
+#if defined(MESHIS_V2)
+    if(_page==HomePage::BOARD && !_meshi_picker && key==KEY_ENTER){
+      _meshi_cursor=meshis_pets::valid(_node_prefs->meshis_pet);_meshi_picker=true;return true;
+    }
+    if(_page==HomePage::BOARD && _meshi_picker){
+      if(key==KEY_CANCEL || key==KEY_SELECT){
+        _meshi_picker=false;_meshi_cursor=meshis_pets::valid(_node_prefs->meshis_pet);return true;
+      }
+#else
     if(_page==HomePage::BOARD){
+#endif
+#if !defined(MESHIS_V2)
       if(key==KEY_CANCEL || key==KEY_SELECT){_page=FIRST;_classic_menu=true;}
       else if(key==KEY_LEFT || key==KEY_PREV)_meshi_cursor=(_meshi_cursor+meshis_pets::count-1)%meshis_pets::count;
+#else
+      if(key==KEY_LEFT || key==KEY_PREV)_meshi_cursor=(_meshi_cursor+meshis_pets::count-1)%meshis_pets::count;
+#endif
       else if(key==KEY_RIGHT || key==KEY_NEXT)_meshi_cursor=(_meshi_cursor+1)%meshis_pets::count;
       else if(key==KEY_UP || key==KEY_DOWN){
         const uint8_t first=(_meshi_cursor/meshis_pets::boardPageSize)*meshis_pets::boardPageSize;
         const uint8_t slot=_meshi_cursor-first,target=first+(slot<3?slot+3:slot-3);
         if(target<meshis_pets::count)_meshi_cursor=target;
       }
-      else if(key==KEY_ENTER){_node_prefs->meshis_pet=_meshi_cursor;the_mesh.savePrefs();_page=FIRST;}
+      else if(key==KEY_ENTER){_node_prefs->meshis_pet=_meshi_cursor;the_mesh.savePrefs();_page=FIRST;
+#if defined(MESHIS_V2)
+        _meshi_picker=false;
+#endif
+      }
       return true;
     }
 #endif

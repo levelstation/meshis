@@ -6,5 +6,10 @@
     "#Test"
   ],
   "configuration_included": false,
-  "device_changes": false
+  "device_changes": false,
+  "menu_gestures": {
+    "1": "Back",
+    "2": "Sound toggle after 1200 ms window",
+    "3": "Lock/unlock, no sound change"
+  }
 }

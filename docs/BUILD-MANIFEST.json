@@ -1,5 +1,5 @@
 {
-  "version": "0.2 RC3",
+  "version": "0.2 RC4",
   "date": "2026-11-22",
   "profile": "Meshis Public",
   "quick_tx_channels": [
@@ -9,24 +9,19 @@
   "channel_keys_included": false,
   "creates_device_channels": false,
   "board": "Original Wio Tracker L1 Pro OLED",
-  "application_bytes": 425780,
+  "application_bytes": 426420,
   "static_ram_bytes": 151992,
   "upstream_commit": "75b04ef06def54b348400cb1b138afb6749ffd4f",
   "noise_display": "Cached MeshCore estimate only; no sampling or calibration changes.",
   "simulator": "macOS 14+ arm64, ad-hoc signed",
   "hardware_base": "USER_CONFIRMED; previous build unspecified",
-  "new_rc3_hardware": "UNTESTED",
+  "new_rc4_hardware": "UNTESTED",
   "hardware_flashed": false,
   "heltec_4v2": "PLANNED; no build; do not use Wio images",
   "files": {
-    "Meshis-2.0-Wio-L1-Pro-DFU.zip": "ed1fe306c07caa4ffd07f1c85f1e8919bb1ef656c93f769a7996ffab2b877a7d",
-    "Meshis-2.0-Wio-L1-Pro.bin": "e97e1b8f97e9e7e4f163c4438f616be88d5a0706c31b5500d2f11c87fa116da9",
-    "Meshis-2.0-Wio-L1-Pro.uf2": "ea83570e0bf0276c91d5ad499f4c2d0cce8dc228ce89d7298165458bfe55a3fc",
-    "Meshis-Simulator-macOS-arm64.zip": "d3e54baf3ebe1237aa3a55fb6398b795fe818dc54450450a5b566d10193912f6"
-  },
-  "menu_gestures": {
-    "single": "Back",
-    "double": "Toggle sound, resolved after 1200 ms from first press",
-    "triple": "Lock/unlock without sound change"
+    "Meshis-2.0-Wio-L1-Pro-DFU.zip": "0f74d57234c99a17e18a5601ac8bfff7af991986ad945249b9a9d0bc2e75dd9d",
+    "Meshis-2.0-Wio-L1-Pro.bin": "059d7f2db7f1506b63e5fc208953e7077ece6733214a3653f6f1790663490868",
+    "Meshis-2.0-Wio-L1-Pro.uf2": "39c3def2e2b41dc1f5e9aaa42450d54fdc53107742212e57fbb51d5031a03c3a",
+    "Meshis-Simulator-macOS-arm64.zip": "87f9796e99177075b3e13c7852b6cc5f1c314e1ec14923c4d7f7b9e4d4e41d54"
   }
 }

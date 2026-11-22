@@ -1,6 +1,6 @@
-# Meshis 0.2 RC3 · Pakethinweise
+# Meshis 0.2 RC4 · Pakethinweise
 
-Ziel: ursprünglicher Wio Tracker L1 Pro OLED. Keine Pro-1W-, E-Ink- oder Heltec-Firmware. Neue RC3-Hardwaretests: UNTESTED; bisherige Gerätebasis vom Nutzer bestätigt. Es wurde nichts geflasht.
+Ziel: ursprünglicher Wio Tracker L1 Pro OLED. Keine Pro-1W-, E-Ink- oder Heltec-Firmware. Neue RC4-Hardwaretests: UNTESTED; bisherige Gerätebasis vom Nutzer bestätigt. Es wurde nichts geflasht.
 
 Kanalmenüs: #Public, #Test. Diese Namen sind keine Schlüssel oder vorkonfigurierten Gerätekanäle. Vorhandene Einstellungen werden nicht gelöscht oder ersetzt. Ein normaler Simulationsreset erhält Einstellungen; automatische Dateisystemformatierung bei Mountfehler ist im Anwendungsbuild deaktiviert.
 

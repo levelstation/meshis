@@ -177,6 +177,9 @@ void Simulator::selectMeshi(int pet){
 #if defined(MESHIS_BOARD)
  if(locked() || pet<0 || pet>=meshiCount())return;
  for(int i=0;i<pageCount();++i)if(!strcmp(pageName(i),"Board")){goToPage(i);break;}
+#if defined(MESHIS_V2)
+ key(KEY_ENTER);
+#endif
  const int current=meshi();for(int step=0;step<(pet-current+meshiCount())%meshiCount();++step)key(KEY_RIGHT);key(KEY_ENTER);
 #else
  (void)pet;
@@ -237,3 +240,6 @@ void Simulator::setSimNoise(int dbm){radio_driver.noise=dbm;render();}
 
 bool Simulator::soundEnabled()const{return !impl_->task.isBuzzerQuiet();}
 void Simulator::setSoundEnabled(bool enabled){if(!locked())impl_->task.quiet=!enabled;render();}
+
+bool Simulator::meshiPickerActive()const{return impl_->home.meshiPickerActive();}
+bool Simulator::mainMenuActive()const{return impl_->home.menuActive();}

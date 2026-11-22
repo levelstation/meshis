@@ -1,6 +1,6 @@
 # Meshis – kleine Begleiter fürs Mesh.
 
-**Version 0.2 · v0.2.0-alpha-rc3 · öffentliches Standardprofil.** Alle 16 Meshis bleiben unverändert erhalten. Der gewählte Meshi bewacht bei der Dreifachklick-Sperre das Display mit einem animierten Pixel-Schloss.
+**Version 0.2 · v0.2.0-alpha-rc4 · öffentliches Standardprofil.** Alle 16 Meshis bleiben unverändert erhalten. Der gewählte Meshi bewacht bei der Dreifachklick-Sperre das Display mit einem animierten Pixel-Schloss.
 
 Diese Ausgabe enthält genau zwei Quick-TX-Kanalmenüs: **#Public** und **#Test**.
 
@@ -25,7 +25,7 @@ Radio und Live Radio / GPS zeigen `Noise est: … dBm`. Das ist der bereits vom 
 
 GPS-Kurs ist ein Bewegungskurs aus frischen gültigen RMC-Daten, kein Magnetkompass. Ohne Fix, im Stillstand und nach acht Sekunden werden keine aktuellen Richtungen vorgetäuscht. UTC und Anzeigezeit bleiben getrennt; Europe/Luxembourg ist Standard.
 
-Die bisherige Gerätebasis einschließlich Funk, BLE, Display und Bootloader wurde vom Nutzer bestätigt. Der genaue alte Build wurde nicht angegeben. Neue RC3-Dateien sind auf echter Hardware UNTESTED. Es wurde kein Gerät geflasht, gelöscht, zurückgesetzt oder umkonfiguriert. Die neue App verhindert automatische Dateisystemformatierung bei einem Mountfehler.
+Die bisherige Gerätebasis einschließlich Funk, BLE, Display und Bootloader wurde vom Nutzer bestätigt. Der genaue alte Build wurde nicht angegeben. Neue RC4-Dateien sind auf echter Hardware UNTESTED. Es wurde kein Gerät geflasht, gelöscht, zurückgesetzt oder umkonfiguriert. Die neue App verhindert automatische Dateisystemformatierung bei einem Mountfehler.
 
 ## Build und Start
 
