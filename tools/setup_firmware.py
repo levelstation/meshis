@@ -11,11 +11,18 @@ assert subprocess.check_output(['git','-C',str(upstream),'rev-parse','HEAD'],tex
 heltec=ROOT/'patches/heltec-prg.patch'
 if heltec.exists() and subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(heltec)],capture_output=True).returncode==0:
  subprocess.run(['git','-C',str(upstream),'apply','--reverse',str(heltec)],check=True)
+live=ROOT/'patches/live-radio.patch'
+if live.exists() and subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(live)],capture_output=True).returncode==0:
+ subprocess.run(['git','-C',str(upstream),'apply','--reverse',str(live)],check=True)
 patch=ROOT/'patches/meshis2.patch'
 check=subprocess.run(['git','-C',str(upstream),'apply','--check',str(patch)],capture_output=True)
 if check.returncode==0:subprocess.run(['git','-C',str(upstream),'apply',str(patch)],check=True)
 else:
  assert subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(patch)],capture_output=True).returncode==0,'Overlay conflicts with local edits; no reset or deletion performed.'
+if live.exists():
+ if subprocess.run(['git','-C',str(upstream),'apply','--check',str(live)],capture_output=True).returncode==0:
+  subprocess.run(['git','-C',str(upstream),'apply',str(live)],check=True)
+ else:assert subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(live)],capture_output=True).returncode==0,'Shared radio overlay conflict; no reset performed'
 def copy(source,destination):
  destination.parent.mkdir(parents=True,exist_ok=True)
  if destination.exists() and destination.read_bytes()!=source.read_bytes():
@@ -33,11 +40,15 @@ build_flags = ${env:WioTrackerL1_companion_radio_ble.build_flags}
   -D BRAND_CLASSIC_UI=1
   -D LU_ALERT_PRESERVE_STORAGE=1
   -D MESHIS_V2=1
+  -D MESHIS_LIVE_RADIO=1
+  "-ffile-prefix-map=@BUILD_HOME@=/build-user"
+  "-fdebug-prefix-map=@BUILD_HOME@=/build-user"
   -D MESHIS_BOARD=1
   -D MESHIS_DEFAULT_PET=0
-  -D FIRMWARE_VERSION='"v0.2.0-alpha-rc4"'
+  -D FIRMWARE_VERSION='"v0.2.0-alpha-rc5"'
   -D FIRMWARE_BUILD_DATE='"22 Nov 2026"'
 '''
+config=config.replace('@BUILD_HOME@',str(Path.home()))
 target=upstream/'platformio.local.ini'
 if target.exists() and target.read_text()!=config:
  backup=ROOT/'build/source-backups'/hashlib.sha256(target.read_bytes()).hexdigest()/'platformio.local.ini';backup.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(target,backup)

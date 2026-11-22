@@ -1,33 +1,25 @@
 --- a/examples/companion_radio/ui-new/UITask.cpp
 +++ b/examples/companion_radio/ui-new/UITask.cpp
-@@ -7,6 +7,11 @@
- #if defined(MESHIS_V2)
- #include "KeyLock.h"
+@@ -9,6 +9,10 @@
  #include "MenuActions.h"
+ #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
+ #include "RuntimeTelemetry.h"
++#endif
 +#if defined(MESHIS_HELTEC_PRG)
 +#include "PrgInput.h"
-+#include "RuntimeTelemetry.h"
 +static meshis::PrgInput heltecPrg;
-+#endif
+ #endif
  #include "LockRenderer.h"
  #include "QuickTx.h"
+@@ -288,7 +292,6 @@
+     telemetry.sample(now,listening,listening?radio_driver.getCurrentRSSI():0,radio_driver.getNoiseFloor());
+   }
  #endif
-@@ -277,6 +282,14 @@
-   static uint32_t previousRx=0,previousTx=0,previousErrors=0,nextPower=0,nextBattery=0;
-   static bool previousBle=false;
-   const uint32_t now=millis();
-+#if defined(MESHIS_HELTEC_PRG)
-+  auto& telemetry=meshis::runtimeTelemetry();
-+  if(telemetry.due(now)){
-+    // Pure cached-state check plus instantaneous RSSI register read. No CAD, retune or TX.
-+    const bool listening=radio_driver.isInRecvMode();
-+    telemetry.sample(now,listening,listening?radio_driver.getCurrentRSSI():0,radio_driver.getNoiseFloor());
-+  }
-+#endif
+-
    const uint32_t rx=radio_driver.getPacketsRecv(),tx=radio_driver.getPacketsSent(),errors=radio_driver.getTxFailures();
    if(rx!=previousRx) {nux.event(meshis::MeshiEvent::PacketReceived,now);_next_refresh=0;}
    if(tx!=previousTx) {nux.event(meshis::MeshiEvent::PacketTransmitted,now);_next_refresh=0;}
-@@ -285,7 +298,11 @@
+@@ -297,7 +300,11 @@
    previousRx=rx;previousTx=tx;previousErrors=errors;previousBle=hasConnection();
    if(static_cast<int32_t>(now-nextPower)>=0) {
      // GPIO-only charge observation; ADC sampled separately once every 8s.
@@ -39,7 +31,7 @@
      if(nextCharge!=chargeStatus) {chargeStatus=nextCharge;nuxPowerDirty=true;}
      if(chargeStatus==meshis::ChargeStatus::Invalid)nux.error(3);
      else if(nux.errorCode()==3)nux.error(0);
-@@ -343,6 +360,13 @@
+@@ -355,6 +362,13 @@
      c = handleTripleClick(KEY_SELECT);
    }
  #endif
@@ -53,7 +45,7 @@
  #elif defined(PIN_USER_BTN)
    int ev = user_btn.check();
    #ifdef UI_HAS_NAV_INPUT
-@@ -408,9 +432,15 @@
+@@ -420,9 +434,15 @@
    const bool wasOverlay=meshis::keyLock().overlay();
    meshis::keyLock().poll(millis());
    if(wasOverlay!=meshis::keyLock().overlay())_next_refresh=0;
@@ -69,7 +61,7 @@
  #endif
    if (c != 0 && curr) {
      curr->handleInput(c);
-@@ -592,5 +622,8 @@
+@@ -604,5 +624,8 @@
      the_mesh.savePrefs();
      showAlert(buzzer.isQuiet() ? "Buzzer: OFF" : "Buzzer: ON", 800);
      _next_refresh = 0;  // trigger refresh
@@ -150,59 +142,3 @@
    #elif defined(HELTEC_V4_R8_TFT)
      #include <helpers/ui/ST7789LCDDisplay.h>
    #endif
---- a/examples/companion_radio/MyMesh.h
-+++ b/examples/companion_radio/MyMesh.h
-@@ -145,6 +145,10 @@
-   void sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t delay_millis=0) override;
- 
-   void logRxRaw(float snr, float rssi, const uint8_t raw[], int len) override;
-+#if defined(MESHIS_HELTEC_PRG)
-+  void logRx(mesh::Packet* packet, int len, float score) override;
-+  void onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp, const uint8_t* app_data, size_t app_data_len) override;
-+#endif
-   bool isAutoAddEnabled() const override;
-   bool shouldAutoAddContactType(uint8_t type) const override;
-   bool shouldOverwriteWhenFull() const override;
---- a/examples/companion_radio/MyMesh.cpp
-+++ b/examples/companion_radio/MyMesh.cpp
-@@ -1,3 +1,6 @@
-+#if defined(MESHIS_HELTEC_PRG)
-+#include "ui-new/RuntimeTelemetry.h"
-+#endif
- #include "MyMesh.h"
- 
- #include <Arduino.h> // needed for PlatformIO
-@@ -288,6 +291,23 @@
-   return _prefs.multi_acks;
- }
- 
-+#if defined(MESHIS_HELTEC_PRG)
-+void MyMesh::logRx(mesh::Packet* packet,int len,float score){
-+  static_assert(MAX_HASH_SIZE<=16,"Telemetry packet hash capacity");
-+  uint8_t hash[MAX_HASH_SIZE];packet->calculatePacketHash(hash);
-+  meshis::runtimeTelemetry().notePacket(packet,hash,MAX_HASH_SIZE,radio_driver.getLastRSSI(),millis());
-+  BaseChatMesh::logRx(packet,len,score);
-+}
-+void MyMesh::onAdvertRecv(mesh::Packet* packet,const mesh::Identity& id,uint32_t timestamp,const uint8_t* app_data,size_t app_data_len){
-+  uint8_t hash[MAX_HASH_SIZE];packet->calculatePacketHash(hash);
-+  const bool direct=packet->isRouteFlood() && mesh::Packet::isValidPathLen(packet->path_len) && packet->getPathHashCount()==0;
-+  auto& telemetry=meshis::runtimeTelemetry();telemetry.beginAdvert(packet,hash,MAX_HASH_SIZE,direct,millis());
-+  // Mesh has already validated the signature; BaseChatMesh retains parsing/replay checks.
-+  BaseChatMesh::onAdvertRecv(packet,id,timestamp,app_data,app_data_len);
-+  telemetry.endAdvert();
-+}
-+#endif
-+
- void MyMesh::logRxRaw(float snr, float rssi, const uint8_t raw[], int len) {
-   if (_serial->isConnected() && len + 3 <= MAX_FRAME_SIZE) {
-     int i = 0;
-@@ -356,6 +376,9 @@
- }
- 
- void MyMesh::onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path_len, const uint8_t* path) {
-+#if defined(MESHIS_HELTEC_PRG)
-+  meshis::runtimeTelemetry().observeValidatedAdvert(contact.id.pub_key,contact.name,contact.type==ADV_TYPE_REPEATER,millis());
-+#endif
-   if (_serial->isConnected()) {
-     if (is_new) {
-       writeContactRespFrame(PUSH_CODE_NEW_ADVERT, contact);

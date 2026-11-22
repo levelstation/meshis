@@ -38,11 +38,13 @@ Simulator::~Simulator()=default;
 void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clock.set(rtc_clock.getCurrentTime()+impl_->fractional/1000);impl_->fractional%=1000;
 #if defined(MESHIS_V2)
   auto& lock=meshis::keyLock();
-#if defined(MESHIS_HELTEC_PRG)
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
   auto& live=meshis::runtimeTelemetry();if(live.due(simMillis)){
     const float variation=radio_driver.noise?float(int((simMillis/500)%9)-4):0;
     live.sample(simMillis,radio_driver.isInRecvMode(),radio_driver.noise?radio_driver.ambient+variation:0,radio_driver.getNoiseFloor());
   }
+#endif
+#if defined(MESHIS_HELTEC_PRG)
   const auto action=impl_->prg.sample(impl_->prgDown,simMillis,lock);
   if(action==meshis::PrgInput::Action::ToggleSound){impl_->task.toggleBuzzer();impl_->task.showAlert(soundEnabled()?"SOUND ON":"SOUND OFF",900);}
   const uint8_t input=meshis::prgKey(action);if(input && !lock.blocks())impl_->current->handleInput(static_cast<char>(input));
@@ -122,7 +124,7 @@ void demoRepeater(unsigned index,bool direct,float rssi,bool collision=false){
   key[0]=0xA0+index;key[1]=0x10+index;
   if(collision){key[0]=0xA0;key[1]=0x10;}
   for(unsigned n=0;n<8;n++)hash[n]=key[n+2];
-  char name[24];snprintf(name,sizeof(name),"DEMO REPEATER %u",index+1);
+  char name[32];if(index==0)snprintf(name,sizeof(name),"DEMO REPEATER LUXEMBOURG NORD");else snprintf(name,sizeof(name),"DEMO REPEATER %u",index+1);
   telemetry.notePacket(&handles[index%12],hash,8,rssi,simMillis);
   telemetry.beginAdvert(&handles[index%12],hash,8,direct,simMillis);
   telemetry.observeValidatedAdvert(key,name,true,simMillis);telemetry.endAdvert();
@@ -291,3 +293,11 @@ void Simulator::prgLevel(bool pressed){
 }
 void Simulator::prgCancel(){impl_->prgDown=false;impl_->prg.cancel(meshis::keyLock());render();}
 bool Simulator::prgPressed()const{return impl_->prg.pressed();}
+
+bool Simulator::liveRadio(){
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
+return true;
+#else
+return false;
+#endif
+}

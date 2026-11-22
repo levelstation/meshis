@@ -12,7 +12,7 @@ namespace {std::unique_ptr<Simulator> model;Simulator& sim(){if(!model)model=std
 API void sim_init(){model=std::make_unique<Simulator>();sim().seed();sim().render();}
 API void sim_step(uint32_t ms){sim().advance(ms);sim().render();}
 API void sim_key(int key){if(key>=0&&key<=255)sim().key(static_cast<uint8_t>(key));sim().render();}
-API void sim_event(int event){if(event>=0&&event<=(Simulator::heltecPrg()?Simulator::DemoCollision:Simulator::NoiseUnknown))sim().event(static_cast<Simulator::Event>(event));}
+API void sim_event(int event){if(event>=0&&event<=(Simulator::liveRadio()?Simulator::DemoCollision:Simulator::NoiseUnknown))sim().event(static_cast<Simulator::Event>(event));}
 API void sim_reset(){sim().resetPreservingSettings();}
 API void sim_splash(){sim().showSplash();}
 API const uint8_t* sim_frame(){sim().render();return sim().buffer();}
@@ -48,7 +48,7 @@ return sim().meshiPickerActive();
 return 0;
 #endif
 }
-API int sim_event_count(){return (Simulator::heltecPrg()?Simulator::DemoCollision:Simulator::NoiseUnknown)+1;}
+API int sim_event_count(){return (Simulator::liveRadio()?Simulator::DemoCollision:Simulator::NoiseUnknown)+1;}
 API const char* sim_event_name(int n){
  static const char* names[]={"Idle","RX-Paket","TX-Paket","Neue Nachricht","Bluetooth verbunden","Bluetooth getrennt","Akku niedrig","Akku laedt","Funkfehler","Keine Funkaktivitaet (+5 min)","Ereignisstatus normalisieren","GPS-Kurs: Bewegung","GPS-Kurs: Stillstand","GPS-Kurs: veraltet","GPS: kein Fix","RX-Langtext Teil 1","RX-Langtext Teil 2","Public fehlt","Demo-Kanaele wiederherstellen","TX-Fehler aktiv","TX-Fehler aus","Rauschpegel ruhig","Rauschpegel hoch","Rauschpegel unbekannt","Repeater-Liste (SIM)","Direktes Repeater-Advert (SIM)","Weitergeleitetes Advert (SIM)","Kennungskollision (SIM)"};
  return n>=0&&n<sim_event_count()?names[n]:"";
@@ -62,3 +62,5 @@ API int sim_prg_pressed(){return sim().prgPressed();}
 API int sim_preset_argument(int n,int item){return n>=0&&n<sim_channel_count()&&item>=0&&item<sim_preset_count(n)?static_cast<int>(meshis::txPreset(n,item).argument):0;}
 
 API int sim_lock_phase(){return sim().lockPhase();}
+
+API int sim_live_radio(){return Simulator::liveRadio();}

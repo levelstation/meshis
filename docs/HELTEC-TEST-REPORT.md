@@ -45,3 +45,8 @@ Der schon vorher vorhandene rein beobachtende TX-Fehlerzähler in RadioLibWrappe
 Die Partitionstabelle ist kollisionsfrei und liegt innerhalb 16 MiB. Beide OTA-Slots haben je 6553600 Byte; die Anwendungen passen. Image-Prüfsumme/-Hash und Tabellen-MD5 sind gültig. Der reale Tracker wurde damit nicht verglichen. Nordic-DFU/UF2 ist für diese ESP32-S3-Targets nicht das erzeugte Format.
 
 **BUILD: PASS · BOARD COMPATIBILITY: UNKNOWN · BOOTLOADER COMPATIBILITY: UNKNOWN · RADIO/BLE/DISPLAY: UNTESTED · TIMEZONE: PASS · RELEASE READINESS (Hardware): NO-GO.** Die lokale Simulationsvorschau ist zum Ausprobieren bereit.
+
+
+## Neuer gemeinsamer Funkmonitor
+
+Dieser Bericht dokumentiert den bisherigen Heltec-dev1-Stand. Die aktuelle Wio-/Heltec-Erweiterung mit vollständigen Namen und RSSI-Balken ist in [RADIO-LIVE.md](RADIO-LIVE.md) und [RADIO-LIVE-BUILD-MANIFEST.json](RADIO-LIVE-BUILD-MANIFEST.json) dokumentiert.

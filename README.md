@@ -1,5 +1,7 @@
 # Meshis – kleine Begleiter fürs Mesh.
 
+**Neu: Wio RC5 / Heltec dev2 – Funkmonitor-Vorschau.** [Repeater live direkt öffnen](https://meshis.nosrv.eu/simulator/?demo=repeaters) · [Pegel / Rauschen](https://meshis.nosrv.eu/simulator/?demo=noise) · [Bedienung](docs/RADIO-LIVE.md).
+
 **Version 0.2 · v0.2.0-alpha-rc4 · öffentliches Standardprofil.** Alle 16 Meshis bleiben unverändert erhalten. Der gewählte Meshi bewacht bei der Dreifachklick-Sperre das Display mit einem animierten Pixel-Schloss.
 
 Diese Ausgabe enthält genau zwei Quick-TX-Kanalmenüs: **#Public** und **#Test**.
@@ -76,3 +78,7 @@ Dann `http://localhost:4176/simulator/` öffnen. Für die native Vergleichsrefer
 [Bedienbare Browser-Vorschau](https://meshis.nosrv.eu/simulator/heltec/) · [Downloads](https://meshis.nosrv.eu/#heltec).
 
 Separate PRG-Version für SSD1315, 128×64, R2/R8-Compileziele. [Funktionsumfang und Hardwaregrenzen](docs/HELTEC-V4.3.md) · [Bauen und starten](docs/HELTEC-BUILD.md) · [Tests](docs/HELTEC-TEST-REPORT.md). Hardware UNTESTED; noch kein Flash-Release.
+
+## Funkmonitor für Wio und Heltec
+
+[Wio: Repeater live](https://meshis.nosrv.eu/simulator/?demo=repeaters) · [Anleitung und Grenzen](docs/RADIO-LIVE.md). Vollständiger Name, vier Hex-Zeichen, RSSI, Signalbalken und Empfangsalter. Browserdaten sind Demo; Hardware arbeitet passiv mit empfangenen Adverts. Neue Geräteversionen sind Software-Vorschauen, nicht physisch getestet.

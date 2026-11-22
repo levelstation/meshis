@@ -4,6 +4,7 @@
 #include "TxProfile.h"
 #include "QuickTx.h"
 #include "RuntimeTelemetry.h"
+#include "RadioTelemetryChecks.h"
 #include "ViewportLayout.h"
 #include <limits>
 #include <filesystem>
@@ -58,25 +59,7 @@ void quickModelTests(){using namespace meshis;
  if(txChannelCount()==8){require(txCount(2)==30&&txCount(3)==24,"Complete supplied LU-Alert and trafic canonical catalogs");require(!strcmp(txPreset(2,20).text,"trafic A13")&&!strcmp(txPreset(3,8).text,"trafic A13"),"Road command spacing follows supplied parser syntax");require(!txPreset(7,0).text[0],"Unknown bot channel command stays disabled");}
  keyLock()={};
 }
-void telemetryTests(){using namespace meshis;
- require(RuntimeTelemetry::dbm(std::numeric_limits<float>::quiet_NaN())==RuntimeTelemetry::missing,"NaN RSSI unknown");
- require(RuntimeTelemetry::dbm(0)==RuntimeTelemetry::missing&&RuntimeTelemetry::dbm(-165)==RuntimeTelemetry::missing,"Out-of-range RSSI unknown");
- RuntimeTelemetry t;t.sample(0,true,-117,-120);require(!t.due(499)&&t.due(500),"RSSI sampling bounded to 2Hz");t.sample(2500,false,-80,-118);
- require(t.traceCount()==6&&t.sampleAt(0)==-117&&t.sampleAt(1)==RuntimeTelemetry::missing&&t.sampleAt(5)==RuntimeTelemetry::missing,"TX/off-RX and skipped periods are gaps, never invented readings");
- for(unsigned n=1;n<=100;n++)t.sample(2500+n*500,true,-110,-118);require(t.traceCount()==64,"Noise history has a fixed bound");t.sample(100000,true,-90,0);require(t.traceCount()==1&&t.noiseEstimate()==RuntimeTelemetry::missing,"Long idle clears stale trace; zero noise estimate unknown");
- t={};t.sample(0xfffffff0,true,-112,-118);t.sample(0x1e4,true,-111,-118);require(t.traceCount()==2,"Noise clock rollover");
- uint8_t key[32]={0xA1,0xB2},hash[8]={1};unsigned packet=0;
- auto observe=[&](const uint8_t* k,bool direct,float rssi,uint32_t now,bool role=true){t.notePacket(&packet,hash,8,rssi,now);t.beginAdvert(&packet,hash,8,direct,now);t.observeValidatedAdvert(k,"DEMO ONLY",role,now);t.endAdvert();};
- t={};t.observeValidatedAdvert(key,"outside validated callback",true,0);require(t.repeaterCount()==0,"No unvalidated/imported contact becomes a measured repeater");observe(key,true,-74,100,false);require(t.repeaterCount()==0,"Client adverts excluded");observe(key,true,-74,200);require(t.repeaterCount()==1&&t.repeater(0,200)->rssi==-74,"Direct validated advert carries its own RSSI");
- observe(key,false,-42,1000);require(t.repeater(0,1000)->rssi==-74&&t.repeater(0,1000)->directSeen==200,"Forwarded advert never overwrites direct RSSI or refreshes its age");
- uint8_t collision[32]={0xA1,0xB2,1};observe(collision,true,-97,1200);require(t.repeaterCount()==2&&t.shortIdCollision(*t.repeater(0,1200)),"Full-key identity retained despite four-hex collision");require(t.repeater(0,1200)->rssi==-74,"Direct nodes sorted by strength");
- uint8_t via[32]={0xC3,0xD4};observe(via,false,-30,1300);require(!t.repeater(2,1300)->hasDirect,"Forwarded last-hop RSSI is not assigned to origin");
- t={};t.notePacket(&packet,hash,8,-55,0);uint8_t wrongHash[8]={2};t.beginAdvert(&packet,wrongHash,8,true,1);t.observeValidatedAdvert(key,"hash mismatch",true,1);t.endAdvert();require(!t.repeater(0,1)->hasDirect&&t.repeater(0,1)->lastWasDirect,"Mismatched packet hash yields unknown direct RSSI");
- t={};t.notePacket(&packet,hash,8,-55,0);t.beginAdvert(&packet,hash,8,true,10001);t.observeValidatedAdvert(key,"expired metadata",true,10001);t.endAdvert();require(!t.repeater(0,10001)->hasDirect,"Expired metadata is not reused");
- t={};for(unsigned n=0;n<12;n++){uint8_t k[32]={};k[0]=n;observe(k,true,-100+n,n*1000);}require(t.repeaterCount()==8,"Only eight repeater entries allocated");for(unsigned n=0;n<8;n++)require(t.repeater(n,12000)->key[0]>=4,"Oldest entry evicted");
- require(sizeof(RuntimeTelemetry)<=2048&&sizeof(QuickTx)<=2304,"Bounded shared state");
- for(int w:{400,512,900,1600,2400})for(int h:{240,400,700,1200})for(int zoom:{0,4,8,12}){const auto v=fitOLED(w,h,zoom);require(v.x>=0&&v.y>=0&&v.x+v.width<=w&&v.y+v.height<=h&&v.width==128*v.scale&&v.height==64*v.scale,"Resizing and zoom preserve every framebuffer pixel at integer scale");require(abs(2*v.x+v.width-w)<=1&&abs(2*v.y+v.height-h)<=1,"OLED remains centered");}
-}
+void telemetryTests(){radio_tests::telemetry(require);}
 unsigned images=0;
 void shot(Simulator& s,const std::string& path,const std::string& name){s.render();require(s.textOverflows()==0,"OLED text overflow");require(writePng(s.buffer(),path+"/"+name+".png",4),"PNG output");require(verifyPng(s.buffer(),path+"/"+name+".png",4),"Framebuffer/PNG pixel parity");std::ofstream(path+"/"+name+".fb",std::ios::binary).write((const char*)s.buffer(),1024);images++;}
 void gestureTests(){using namespace meshis;
@@ -125,8 +108,8 @@ int runHeltecTests(const std::string& output){try{using namespace meshis;gesture
   s.advance(31000);require(s.simulatedSends()==1,"No automatic retry even after timeout");back(s);require(s.quickPage()==int(QuickTx::Page::Presets),"Back from followed RX returns to selected channel presets");
  }
  {Simulator s;s.goToPage(page("Messages"));enter(s);enter(s);enter(s);enter(s);s.setSimTxFailure(true);enter(s);require(s.quickPage()==int(QuickTx::Page::Failed)&&s.simulatedSends()==0,"Rejected local TX never opens channel as accepted");}
- {Simulator s;s.goToPage(page("RX Live / Noise"));s.event(Simulator::NoiseQuiet);for(unsigned n=0;n<64;n++)s.advance(500);shot(s,output,"noise-quiet");s.event(Simulator::NoiseBusy);for(unsigned n=0;n<32;n++)s.advance(500);shot(s,output,"noise-change");s.event(Simulator::NoiseUnknown);s.advance(500);shot(s,output,"noise-unknown");require(s.simulatedSends()==0,"Noise display produces no radio requests");}
- {Simulator s;s.goToPage(page("Repeaters"));shot(s,output,"repeaters-empty");s.event(Simulator::DemoRepeaters);s.event(Simulator::DemoForwarded);s.event(Simulator::DemoCollision);shot(s,output,"repeaters-direct");enter(s);next(s);shot(s,output,"repeaters-via-mesh");back(s);next(s);require(s.pageIndex()!=page("Repeaters"),"Collapsed repeater child list does not trap main-menu navigation");s.goToPage(page("Repeaters"));s.advance(180001);shot(s,output,"repeaters-stale");const unsigned rx=s.rxCount();triple(s);s.advance(450);s.event(Simulator::DemoDirect);require(s.rxCount()==rx+1&&s.simulatedSends()==0,"Passive adverts still received under lock");s.resetPreservingSettings();require(runtimeTelemetry().repeaterCount()==0&&runtimeTelemetry().traceCount()==0,"Normal reset clears temporary RF telemetry");}
+ {Simulator s;s.goToPage(page("Pegel / Rauschen"));s.event(Simulator::NoiseQuiet);for(unsigned n=0;n<64;n++)s.advance(500);shot(s,output,"noise-quiet");s.event(Simulator::NoiseBusy);for(unsigned n=0;n<32;n++)s.advance(500);shot(s,output,"noise-change");s.event(Simulator::NoiseUnknown);s.advance(500);shot(s,output,"noise-unknown");require(s.simulatedSends()==0,"Noise display produces no radio requests");}
+ {Simulator s;s.goToPage(page("Repeater live"));shot(s,output,"repeaters-empty");s.event(Simulator::DemoRepeaters);s.event(Simulator::DemoForwarded);s.event(Simulator::DemoCollision);shot(s,output,"repeaters-direct");enter(s);next(s);shot(s,output,"repeaters-via-mesh");back(s);next(s);require(s.pageIndex()!=page("Repeater live"),"Collapsed repeater child list does not trap main-menu navigation");s.goToPage(page("Repeater live"));s.advance(180001);shot(s,output,"repeaters-stale");const unsigned rx=s.rxCount();triple(s);s.advance(450);s.event(Simulator::DemoDirect);require(s.rxCount()==rx+1&&s.simulatedSends()==0,"Passive adverts still received under lock");s.resetPreservingSettings();require(runtimeTelemetry().repeaterCount()==0&&runtimeTelemetry().traceCount()==0,"Normal reset clears temporary RF telemetry");}
  {Simulator s;s.goToPage(page("Messages"));enter(s);enter(s);enter(s);enter(s);triple(s);s.advance(450);enter(s);require(s.simulatedSends()==0,"Triple on TX preview cannot accidentally send");}
  {Simulator s;s.goToPage(page("Messages"));enter(s);next(s);enter(s);s.event(Simulator::BotPartOne);s.event(Simulator::BotPartTwo);std::array<uint8_t,1024> before;std::memcpy(before.data(),s.buffer(),1024);next(s);s.render();require(std::memcmp(before.data(),s.buffer(),1024)!=0,"PRG scrolls Inbox text");shot(s,output,"inbox-scroll");enter(s);shot(s,output,"inbox-next");require(s.simulatedSends()==0,"Inbox reading never sends");back(s);}
  {Simulator s;s.setUtc(1767225600);require(s.local()-s.utc()==3600,"Winter timezone");s.setUtc(1782864000);require(s.local()-s.utc()==7200,"Summer timezone");s.setUtc(1774745999);require(s.local()-s.utc()==3600,"Before summer switch");s.setUtc(1774746000);require(s.local()-s.utc()==7200,"At summer switch");s.setUtc(1792889999);require(s.local()-s.utc()==7200,"Before winter switch");s.setUtc(1792890000);require(s.local()-s.utc()==3600,"At winter switch");}

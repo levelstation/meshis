@@ -1,0 +1,18 @@
+{
+  "status": "PREVIEW",
+  "version_wio": "RC5",
+  "version_heltec": "dev2",
+  "hardware_tests": "UNTESTED",
+  "hardware_flashed": false,
+  "old_downloads_preserved": true,
+  "files": {
+    "Meshis-Heltec-Radio-Live-dev2-macOS-arm64.zip": "9c69a2793c9839cdbc97e26a67e6da729e8681d8668003e3b6ffd025f43261b9",
+    "Meshis-Radio-Live-Source.zip": "0a818093acbce044f2b7e7a6fd12788078f790bc30e17fab94276910f8e9d9ea",
+    "Meshis-Wio-DFU-VALIDATION.json": "5705afd9defc1e670eab0715d65e1e4062a8cf12551035cf9f55f9c4cbd5b622",
+    "Meshis-Wio-MEMORY-LAYOUT.json": "630ed1eccbe7a6825e19fe205d62868b70c3531be8bcdccc095f364e50eefc1d",
+    "Meshis-Wio-Radio-Live-RC5-DFU.zip": "2f6749711e555154775aaa3658242e371d63e330e38d6e3c134f2674ff20af1d",
+    "Meshis-Wio-Radio-Live-RC5-macOS-arm64.zip": "8834b6a29bf49faf3fb1f535ccf970a1327ad2b4cc503d5c4e4797442666db11",
+    "Meshis-Wio-Radio-Live-RC5.bin": "9e5f23cd93aa03e8660375fb70ac8d7ff0c34b0563f53466f80ab619a94eff8e",
+    "Meshis-Wio-Radio-Live-RC5.uf2": "c609e47cedddf41f7bf944607d110a14f0b10268a607728fd1acd7059dcfed9d"
+  }
+}

@@ -1,6 +1,6 @@
 # Heltec V4.3 OLED – Entwicklungsvorschau
 
-Stand: 22. November 2026 · v0.2.0-heltec-dev1 · kein Hardware-Release.
+Stand: 22. November 2026 · v0.2.0-heltec-dev2 · kein Hardware-Release.
 
 ## Hardwaregrundlage
 
@@ -26,13 +26,13 @@ Alle Menüs sind mit PRG erreichbar. Board und Repeater-Liste sind Untermenüs: 
 
 ## Live-Anzeige
 
-Unter `RX Live / Noise` erscheint eine Kurve mit bis zu 64 Werten und 500-ms-Abtastung. `R` ist der momentane RX-Pegel in dBm, also Signal plus Rauschen. `N` und die gepunktete Linie sind die vorhandene zwischengespeicherte Rauschschätzung, keine neue kalibrierte Messung. Nichtempfangsphasen, ungültige Werte und ausgelassene Intervalle erscheinen als Lücken. Der Graph umfasst ungefähr 32 Sekunden; nur die Grafik wird auf −140…−40 dBm begrenzt. Zahlen zeigen den gültigen Originalwert.
+Unter `Pegel / Rauschen` erscheint eine Kurve mit bis zu 64 Werten und 500-ms-Abtastung. `R` ist der momentane RX-Pegel in dBm, also Signal plus Rauschen. `N` und die gepunktete Linie sind die vorhandene zwischengespeicherte Rauschschätzung, keine neue kalibrierte Messung. Nichtempfangsphasen, ungültige Werte und ausgelassene Intervalle erscheinen als Lücken. Der Graph umfasst ungefähr 32 Sekunden; nur die Grafik wird auf −140…−40 dBm begrenzt. Zahlen zeigen den gültigen Originalwert.
 
 Der Firmwareadapter prüft ausschließlich den vorhandenen RX-Status und liest `getCurrentRSSI()` / `getNoiseFloor()`. Er startet keinen Scan, CAD-Vorgang, Frequenzwechsel oder zusätzlichen Funkversand. Simulationswerte werden ausdrücklich als SIMULATION gekennzeichnet und sind keine Messwerte des Macs oder Trackers.
 
 ## Repeater-Anzeige
 
-Bis zu acht zuletzt gehörte Repeater werden im RAM geführt, zwei je Seite: Name, vier Hex-Zeichen aus den ersten zwei Bytes des öffentlichen Schlüssels, direkter RSSI und dessen Alter. Die vollständigen 32 Bytes werden zum Unterscheiden verwendet. Gleiche Kurzkennungen erhalten `*`; sie werden nicht zusammengeführt. Die Kurzkennung ändert weder Paketformat noch MeshCore-Pfadlänge.
+Bis zu acht zuletzt gehörte Repeater werden im RAM geführt, ein vollständiger Name über zwei Zeilen je Ansicht: Name, vier Hex-Zeichen aus den ersten zwei Bytes des öffentlichen Schlüssels, direkter RSSI und dessen Alter. Die vollständigen 32 Bytes werden zum Unterscheiden verwendet. Gleiche Kurzkennungen erhalten `*`; sie werden nicht zusammengeführt. Die Kurzkennung ändert weder Paketformat noch MeshCore-Pfadlänge.
 
 Die Erfassung benutzt die bestehenden `logRx`, `onAdvertRecv` und `onDiscoveredContact`-Hooks. RSSI wird dem konkreten Paket über Zeiger und vollständigen Paket-Hash zugeordnet, bevor die verzögerte Verarbeitung beginnt. Die Liste akzeptiert nur Repeater aus dem regulären signaturgeprüften Advert-Pfad nach dessen Parser-/Replayprüfung. Fehlende, abgelaufene oder verdrängte Empfangsmetadaten ergeben unbekannten RSSI.
 
@@ -52,6 +52,8 @@ Andere Kanäle ersetzen die gewählte Ansicht nicht. Neue Nachrichten im gewähl
 
 Die vorhandene AppKit-Anwendung wurde erweitert. Firmware und Mac verwenden dieselben `FirmwareScreens.h`, `QuickTx.h`, `PrgInput.h`, `KeyLock.h`, `LockRenderer.h`, `RuntimeTelemetry.h`, Meshi-Sprites und denselben `FramebufferDisplay`. Nur Hardwareadapter und Fensterdarstellung unterscheiden sich. Der SSD1315-Adapter bindet den bereits vom OLED-Treiber bereitgestellten Buffer; es entsteht kein zweiter OLED-Framebuffer. Telemetriezustand bleibt unter 2048 Byte, Quick TX einschließlich Inbox unter 2304 Byte, PRG-Zustand unter 16 Byte. Alle 16 Meshis sind unverändert.
 
-Diese Erweiterungen sind im separaten Heltec-Profil aktiv. Die bedienbare Browser-Vorschau liegt unter `simulator/heltec/`. Die veröffentlichten Wio-Downloads und die bisherigen Website-Simulatoren wurden nicht ersetzt. Firmwarestand und tatsächliche Firmware-/Bootloader-/Partitionseinstellungen eines Heltec wurden nicht ausgelesen. Die erstellten ESP32-S3-Anwendungen sind Entwicklungsartefakte, keine nRF52-DFU-ZIPs oder UF2-Dateien. Beim SPIFFS-Mountfehler stoppt dieser Targetpfad mit E901, ohne automatisch zu formatieren. Eine leere oder anders partitionierte Installation wird dadurch nicht automatisch eingerichtet.
+Der Funkmonitor ist jetzt gemeinsam für Wio und Heltec verfügbar. Die bedienbare Browser-Vorschau liegt unter `simulator/heltec/`. Die bisherigen Wio-Downloads bleiben erhalten. Die ältere Wio-Websimulation ist zusätzlich archiviert; die aktuelle Wio-Websimulation enthält jetzt den gemeinsamen Funkmonitor. Firmwarestand und tatsächliche Firmware-/Bootloader-/Partitionseinstellungen eines Heltec wurden nicht ausgelesen. Die erstellten ESP32-S3-Anwendungen sind Entwicklungsartefakte, keine nRF52-DFU-ZIPs oder UF2-Dateien. Beim SPIFFS-Mountfehler stoppt dieser Targetpfad mit E901, ohne automatisch zu formatieren. Eine leere oder anders partitionierte Installation wird dadurch nicht automatisch eingerichtet.
 
 Keine Geräteports geöffnet, kein Flash, kein Erase, keine produktiven Einstellungen geändert. Hardware für OLED, Funk, BLE, PRG, Energieversorgung und GNSS: **UNTESTED**. Einsatz auf echter Hardware: **NO-GO**, bis die genaue Revision und das bestehende Speicherlayout geprüft wurden.
+
+Die vollständige gemeinsame Anleitung und Grenzen stehen in [RADIO-LIVE.md](RADIO-LIVE.md). Wio-Firmware und Wio-Simulator enthalten jetzt dieselben Live-Ansichten.

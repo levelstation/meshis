@@ -11,6 +11,7 @@
 static Simulator* model=nullptr;
 static bool renderLayouts=false;
 int runHeltecTests(const std::string& output);
+int runLiveRadioTests(const std::string& output);
 @interface PrgLabButton:LabButton @end
 @implementation PrgLabButton
 -(void)mouseDown:(NSEvent*)event{[self highlight:YES];model->prgLevel(true);}
@@ -100,7 +101,7 @@ int runHeltecTests(const std::string& output);
   self.pages.target=self;self.pages.action=@selector(pageChanged:);
   NSMutableArray<NSView*>* eventViews=[NSMutableArray array];
   NSArray* events=@[@"Idle",@"RX-Paket",@"TX-Paket",@"Neue Nachricht",@"Bluetooth verbunden",@"Bluetooth getrennt",@"Akku niedrig",@"Akku lädt",@"Funkfehler",@"Keine Funkaktivität (+5 min)",@"Ereignisstatus normalisieren",@"GPS-Kurs: Bewegung (SIM)",@"GPS-Kurs: Stillstand (SIM)",@"GPS-Kurs: veraltet (SIM)",@"GPS: kein Fix (SIM)",@"RX-Langtext Teil 1 (SIM)",@"RX-Langtext Teil 2 (SIM)",@"Public fehlt (SIM)",@"Demo-Kanaele wiederherstellen",@"TX-Fehler aktiv (SIM)",@"TX-Fehler aus (SIM)",@"Rauschpegel ruhig (SIM)",@"Rauschpegel hoch (SIM)",@"Rauschpegel unbekannt (SIM)"];
-  if(Simulator::heltecPrg())events=[events arrayByAddingObjectsFromArray:@[@"Repeater-Liste (SIM)",@"Direktes Repeater-Advert (SIM)",@"Weitergeleitetes Advert (SIM)",@"Kennungskollision (SIM)"]];
+  if(Simulator::liveRadio())events=[events arrayByAddingObjectsFromArray:@[@"Repeater-Liste (SIM)",@"Direktes Repeater-Advert (SIM)",@"Weitergeleitetes Advert (SIM)",@"Kennungskollision (SIM)"]];
   for(NSInteger i=0;i<events.count;++i)[eventViews addObject:[self button:events[i] action:@selector(eventPressed:) tag:i]];
   NSButton* up=[self button:@"↑" action:@selector(joystick:) tag:0xb5];
   NSButton* down=[self button:@"↓" action:@selector(joystick:) tag:0xb6];
@@ -201,12 +202,12 @@ int runHeltecTests(const std::string& output);
       cleanText(self.window.title);
       auto audit=[&](auto&& walk,NSView* current)->void{if(current.hidden)return;if([current isKindOfClass:NSTextField.class])cleanText(((NSTextField*)current).stringValue);if([current isKindOfClass:NSButton.class])cleanText(((NSButton*)current).title);for(NSView* child in current.subviews)walk(walk,child);};audit(audit,view);
     }
-    if(Simulator::heltecPrg()){
+    if(Simulator::liveRadio()){
       [self.window setContentSize:NSMakeSize(1240,840)];
       auto pageNamed=[&](const char* name){for(int p=0;p<Simulator::pageCount();p++)if(!strcmp(Simulator::pageName(p),name)){sim->goToPage(p);return;}fprintf(stderr,"Missing Heltec view\n");exit(1);};
       auto capture=[&](const char* name){[self sync];[self.window.contentView layoutSubtreeIfNeeded];[self.window.contentView displayIfNeeded];NSView* view=self.window.contentView;NSBitmapImageRep* bitmap=[view bitmapImageRepForCachingDisplayInRect:view.bounds];[view cacheDisplayInRect:view.bounds toBitmapImageRep:bitmap];[[bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}]writeToFile:[directory stringByAppendingPathComponent:[NSString stringWithUTF8String:name]] atomically:YES];};
-      pageNamed("RX Live / Noise");sim->event(Simulator::NoiseQuiet);for(int n=0;n<40;n++)sim->advance(500);sim->event(Simulator::NoiseBusy);for(int n=0;n<24;n++)sim->advance(500);capture("noise-native.png");
-      pageNamed("Repeaters");sim->event(Simulator::DemoRepeaters);sim->event(Simulator::DemoForwarded);sim->event(Simulator::DemoCollision);capture("repeaters-native.png");sim->key(13);sim->key(0xb7);capture("repeaters-relayed-native.png");
+      pageNamed("Pegel / Rauschen");sim->event(Simulator::NoiseQuiet);for(int n=0;n<40;n++)sim->advance(500);sim->event(Simulator::NoiseBusy);for(int n=0;n<24;n++)sim->advance(500);capture("noise-native.png");
+      pageNamed("Repeater live");sim->event(Simulator::DemoRepeaters);sim->event(Simulator::DemoForwarded);sim->event(Simulator::DemoCollision);capture("repeaters-native.png");sim->key(13);sim->key(0xb7);capture("repeaters-relayed-native.png");
       pageNamed("Messages");sim->key(13);sim->key(13);if(!Simulator::meshiUi()){sim->key(0xb7);sim->key(0xb7);}sim->key(13);sim->key(13);capture("tx-preview-native.png");sim->key(13);sim->advance(1);sim->receiveSimulated(Simulator::meshiUi()?"#Public":"#LU-Alert","DEMO BOT","SIMULATION: Antwort im gewaehlten Kanal. Kein echter Funkverkehr.");capture("channel-rx-native.png");
       self.grid.state=NSControlStateValueOn;[self optionsChanged:nil];capture("channel-rx-grid-native.png");
     }
@@ -247,6 +248,7 @@ int runHeltecTests(const std::string& output);
 @end
 int main(int argc,char** argv){@autoreleasepool{
   if(Simulator::heltecPrg() && argc>1 && std::string(argv[1])=="--self-test")return runHeltecTests(argc>2?argv[2]:"build/heltec/screenshots");
+  if(Simulator::liveRadio() && !Simulator::heltecPrg() && argc>1 && std::string(argv[1])=="--self-test")return runLiveRadioTests(argc>2?argv[2]:"build/radio-live/screenshots");
   if(argc>1 && (std::string(argv[1])=="--self-test" || std::string(argv[1])=="--bless"))return runTests(argc>2?argv[2]:"build/screenshots",std::string(argv[1])=="--bless");
   if(argc>1 && std::string(argv[1])=="--help"){puts(Simulator::heltecPrg()?"Heltec OLED Simulator — SIMULATION ONLY\nSpace: hold/release PRG; short: Next; 600-1499ms: Enter; 1500ms+: Back.\n2x PRG: Sound preference; 3x PRG: Lock; Cmd+R: normal reset.\n--self-test [output] | --layout-screenshots":"Meshis Simulator — DEMO ONLY\nArrows: joystick; Enter: select; Escape: back; Cmd+R: reset.\n--self-test [output] | --bless [output] | --layout-screenshots");return 0;}
   renderLayouts=argc>1 && std::string(argv[1])=="--layout-screenshots";

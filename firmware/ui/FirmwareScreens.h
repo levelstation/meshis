@@ -5,7 +5,7 @@
 #if defined(MESHIS_V2)
 #include "QuickTx.h"
 #include "GpsCourse.h"
-#if defined(MESHIS_HELTEC_PRG)
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
 #include "RuntimeTelemetry.h"
 #endif
 #endif
@@ -106,7 +106,7 @@ class HomeScreen : public UIScreen {
 #endif
 #if defined(MESHIS_V2)
     LIVE,
-#if defined(MESHIS_HELTEC_PRG)
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
     NOISE, REPEATERS,
 #endif
     SOUND,
@@ -140,7 +140,7 @@ class HomeScreen : public UIScreen {
   SensorManager* _sensors;
   NodePrefs* _node_prefs;
   uint8_t _page;
-#if defined(MESHIS_HELTEC_PRG)
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
   bool _repeater_list=false;uint8_t _repeater_page=0;
 #endif
   bool _shutdown_init;
@@ -156,10 +156,11 @@ class HomeScreen : public UIScreen {
   static HomePage menuPage(unsigned index) {
     static const HomePage order[]={
 #if defined(MESHIS_V2)
-      MESSAGES,LIVE,
-#if defined(MESHIS_HELTEC_PRG)
-      NOISE,REPEATERS,
+      MESSAGES,
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
+      REPEATERS,NOISE,
 #endif
+      LIVE,
 #endif
 #if defined(MESHIS_BOARD)
       BOARD,ANIMATIONS,
@@ -286,7 +287,7 @@ public:
 #if defined(BRAND_CLASSIC_UI)
   bool menuActive()const{return _classic_menu;}
   void selectPage(int index){if(index>=0 && index<Count){_page=index;_classic_menu=false;
-#if defined(MESHIS_HELTEC_PRG)
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
       _repeater_list=false;_repeater_page=0;
 #endif
 #if defined(MESHIS_BOARD)
@@ -309,8 +310,8 @@ public:
 #endif
 #if defined(MESHIS_V2)
       case LIVE:return "Live Radio / GPS";case SOUND:return "Sound";
-#if defined(MESHIS_HELTEC_PRG)
-      case NOISE:return "RX Live / Noise";case REPEATERS:return "Repeaters";
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
+      case NOISE:return "Pegel / Rauschen";case REPEATERS:return "Repeater live";
 #endif
 #if ENV_INCLUDE_GPS == 1
       case COURSE:return "GPS Course";
@@ -401,7 +402,7 @@ public:
       return 1000;
     }
 #endif
-#if defined(MESHIS_HELTEC_PRG)
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
     if(_page==HomePage::NOISE){meshis::renderNoiseTrace(display,meshis::runtimeTelemetry());return 500;}
     if(_page==HomePage::REPEATERS){meshis::renderRepeaters(display,meshis::runtimeTelemetry(),millis(),_repeater_page,_repeater_list);return 500;}
 #endif
@@ -804,14 +805,14 @@ display.drawTextEllipsized(0,42,128,meshis::inputHint("Enter: umschalten","PRG h
 
   bool handleInput(char c) override {
     const uint8_t key=static_cast<uint8_t>(c);
-#if defined(MESHIS_HELTEC_PRG)
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
     if(!_classic_menu && _page==HomePage::REPEATERS){
       if(key==KEY_ENTER){_repeater_list=!_repeater_list;return true;}
       if(_repeater_list){
         if(key==KEY_CANCEL){_repeater_list=false;return true;}
-        if(key==KEY_NEXT || key==KEY_RIGHT || key==KEY_PREV || key==KEY_LEFT){
-          const unsigned pages=(meshis::runtimeTelemetry().repeaterCount()+1)/2;
-          if(pages)_repeater_page=(_repeater_page+((key==KEY_PREV||key==KEY_LEFT)?pages-1:1))%pages;
+        if(key==KEY_NEXT || key==KEY_RIGHT || key==KEY_DOWN || key==KEY_PREV || key==KEY_LEFT || key==KEY_UP){
+          const unsigned pages=meshis::runtimeTelemetry().repeaterCount();
+          if(pages)_repeater_page=(_repeater_page+((key==KEY_PREV||key==KEY_LEFT||key==KEY_UP)?pages-1:1))%pages;
         }
         return true;
       }
@@ -823,7 +824,7 @@ display.drawTextEllipsized(0,42,128,meshis::inputHint("Enter: umschalten","PRG h
       if(key==KEY_UP || key==KEY_LEFT || key==KEY_PREV)_classic_selection=(_classic_selection+Count-2)%(Count-1);
       else if(key==KEY_DOWN || key==KEY_RIGHT || key==KEY_NEXT)_classic_selection=(_classic_selection+1)%(Count-1);
       else if(key==KEY_ENTER || key==KEY_SELECT){_page=menuPage(_classic_selection);_classic_menu=false;
-#if defined(MESHIS_HELTEC_PRG)
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
         _repeater_list=false;_repeater_page=0;
 #endif
 #if defined(MESHIS_BOARD)

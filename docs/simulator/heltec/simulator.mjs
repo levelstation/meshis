@@ -1,11 +1,13 @@
-import createSimulator from './wasm/core.mjs';
+import createSimulator from './wasm/core.mjs?v=radio-live-2';
+import {bindRadioDemo} from '../radio-demo.mjs?v=radio-live-2';
+let radioUi=null;
 import {bindPrg} from './prg-input.mjs';
 const $=id=>document.getElementById(id),canvas=$('oled'),viewport=$('viewport'),ctx=canvas.getContext('2d',{alpha:false});
 const source=document.createElement('canvas');source.width=128;source.height=64;const sourceCtx=source.getContext('2d',{alpha:false}),pixels=sourceCtx.createImageData(128,64);
 let core=null,lastTick=performance.now(),lastPaint=0,zoom=1,input;
 function step(now=performance.now()){if(!core)return;const ms=Math.max(0,Math.min(60000,Math.floor(now-lastTick)));lastTick+=ms;if(!$('pause').checked)core._sim_step(ms);else lastTick=now;}
 function fit(){const ceiling=Number($('zoom').value)||12;zoom=Math.max(1,Math.min(ceiling,Math.floor(Math.min((viewport.clientWidth-24)/128,(viewport.clientHeight-24)/64))));canvas.width=128*zoom;canvas.height=64*zoom;$('fit').textContent=`128 × 64 · 1 Bit · 1024 Byte · ${zoom}× · vollständig zentriert`;paint();}
-function paint(){if(!core)return;const ptr=core._sim_frame(),bytes=core.HEAPU8.subarray(ptr,ptr+1024);for(let y=0;y<64;y++)for(let x=0;x<128;x++){const v=bytes[x+(y>>3)*128]&(1<<(y&7))?255:0,i=(y*128+x)*4;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v;pixels.data[i+3]=255;}sourceCtx.putImageData(pixels,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(source,0,0,canvas.width,canvas.height);
+function paint(){if(!core)return;radioUi?.update();const ptr=core._sim_frame(),bytes=core.HEAPU8.subarray(ptr,ptr+1024);for(let y=0;y<64;y++)for(let x=0;x<128;x++){const v=bytes[x+(y>>3)*128]&(1<<(y&7))?255:0,i=(y*128+x)*4;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v;pixels.data[i+3]=255;}sourceCtx.putImageData(pixels,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(source,0,0,canvas.width,canvas.height);
  if($('grid').checked&&zoom>=3){ctx.strokeStyle='rgba(120,150,200,.26)';ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=128;x++){ctx.moveTo(x*zoom+.5,0);ctx.lineTo(x*zoom+.5,canvas.height);}for(let y=0;y<=64;y++){ctx.moveTo(0,y*zoom+.5);ctx.lineTo(canvas.width,y*zoom+.5);}ctx.stroke();}
  const busy=!!core._sim_locked(),phase=core._sim_lock_phase();$('page').disabled=busy;$('pet').disabled=busy;$('prg').disabled=$('pause').checked;
  $('status').textContent=`SIMULATION | ${phase?'TASTENSPERRE':core._sim_prg_pressed()?'PRG GEDRÜCKT':busy?'KLICKFENSTER':'Tasten frei'} | SOUND ${core._sim_sound()?'ON':'OFF'} | RX ${core._sim_rx()} | TX ${core._sim_sends()} (simuliert)`;
@@ -21,10 +23,10 @@ for(const id of ['zoom','grid'])$(id).addEventListener('change',fit);$('pause').
 for(const [id,epoch] of [['winter',1767225600],['summer',1782864000]])$(id).addEventListener('click',()=>{step();core._sim_set_utc(epoch);paint();});
 window.addEventListener('keydown',event=>{if(!core||event.repeat||event.ctrlKey||event.metaKey||event.altKey||/INPUT|SELECT|TEXTAREA/.test(event.target?.tagName||''))return;if(event.key.toLowerCase()==='r'){event.preventDefault();$('reset').click();}});
 new ResizeObserver(fit).observe(viewport);
-try{core=await createSimulator({printErr:message=>console.error(message)});core._sim_init();if(core._sim_input_profile()!==1)throw Error('Wrong input profile');core._sim_set_utc(Math.floor(Date.now()/1000));core._sim_splash();
+try{core=await createSimulator({printErr:message=>console.error(message),locateFile:file=>new URL('./wasm/'+file+'?v=radio-live-2',import.meta.url).href});core._sim_init();radioUi=bindRadioDemo({core,element:$,step,paint,initialDemo:new URLSearchParams(location.search).get('demo')||''});if(core._sim_input_profile()!==1)throw Error('Wrong input profile');core._sim_set_utc(Math.floor(Date.now()/1000));core._sim_splash();
  for(let n=0;n<core._sim_page_count();n++)$('page').add(new Option(core.UTF8ToString(core._sim_page_name(n)),String(n)));
  for(let n=0;n<core._sim_pet_count();n++)$('pet').add(new Option(core.UTF8ToString(core._sim_pet_name(n)),String(n)));$('pet-label').hidden=core._sim_pet_count()===0;
  for(let n=0;n<core._sim_event_count();n++)$('event').add(new Option(core.UTF8ToString(core._sim_event_name(n)).replace(/ \(SIM\)$/,'')+' (SIM)',String(n)));
- for(const control of document.querySelectorAll('button,select'))control.disabled=false;lastTick=performance.now();fit();
+ for(const control of document.querySelectorAll('button,select'))control.disabled=false;lastTick=performance.now();fit();radioUi.startInitial();
  function frame(now){step(now);if(now-lastPaint>=1000/Number($('rate').value)){paint();lastPaint=now;}requestAnimationFrame(frame);}requestAnimationFrame(frame);
 }catch(error){console.error(error);$('status').textContent='Die Heltec-Vorschau konnte nicht starten. Bitte neu laden oder den Mac-Simulator verwenden.';$('fit').textContent='WebAssembly konnte nicht geladen werden.';}

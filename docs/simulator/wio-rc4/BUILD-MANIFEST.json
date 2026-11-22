@@ -1,0 +1,28 @@
+{
+  "format": "Shared C++ simulator compiled to WebAssembly",
+  "compiler": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 7.0.1 (ac0578743420bcbe9a4f77d0b6599c25f8d43702)",
+  "framebuffer_bytes": 1024,
+  "display": [
+    128,
+    64,
+    1
+  ],
+  "device_access": false,
+  "files": {
+    "core.mjs": "e0f816df9025b8d3efa6b8ad0094c28de284d1b6112272a902cebec084b76383",
+    "core.wasm": "f87a1c06ee45490687b4c33f1c51232b8cbf603a6ef6817cf875384341cc85df"
+  },
+  "shared_sources": {
+    "simulator/web/Bridge.cpp": "06131669b15e856b905fe1d3b219ef9ee53923ce6d24e2eee4cdc5b52f29f8b7",
+    "firmware/ui/TxProfile.h": "79f37b17e29f286a0933e3d79c060881fa97aabd7d662d5262dad1903e18a2ce",
+    "firmware/ui/MeshiSprites.h": "d16434fc9d62257c8e0b254b9b9768a0434b4fa1853e62818e5eca72bc904abb",
+    "simulator/src/Simulator.cpp": "bd8e21df9d01d12d8667f776bfb004419dd3c570c1d6d519fd9d29b25fc2c3b0",
+    "simulator/src/FirmwareAdapter.h": "df9903d3457225350b29fe4733784c780f5a32b3187eab88fa7e794f56721695",
+    "firmware/ui/FirmwareScreens.h": "a79997ed3cf2406f723225c0205e308be8ee7b81e43537d83e8201e36fc59096",
+    "firmware/ui/QuickTx.h": "1bc853ed2bef4b77005f1c3292d20b1fee66e8aa80084f63893119d7efbcf972",
+    "firmware/ui/MenuActions.h": "962e9fa6a4037136f7aa9b8af3917041a4de7c841379c32572c475e5552b480f",
+    "firmware/core/KeyLock.h": "644215ff4753f0d226b839a3bf7e8d68022376d8ec86a7d3b26792222213be62",
+    "firmware/ui/LockRenderer.h": "c25ef81ea69e33c68297db434ac487f43481ffb4bd77996e055ee590e2bd5e91",
+    "firmware/display/FramebufferDisplay.h": "30904f4e0cfc9863451f071ca1520e57585ad88fe61f0cb9ab2c6e295b1622a9"
+  }
+}

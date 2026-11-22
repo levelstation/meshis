@@ -1,0 +1,254 @@
+{
+  "status": "PREVIEW",
+  "date": "2026-11-22",
+  "hardware_flashed": false,
+  "wio_dfu": {
+    "dfu_validation": "PASS",
+    "format": "Adafruit/Nordic legacy DFU 0.5 application-only",
+    "zip_root_files": [
+      "firmware.bin",
+      "manifest.json",
+      "firmware.dat"
+    ],
+    "application_bytes": 437308,
+    "application_sha256": "9e5f23cd93aa03e8660375fb70ac8d7ff0c34b0563f53466f80ab619a94eff8e",
+    "crc16": "0xf139",
+    "device_type": "0x52",
+    "softdevice_required_fwid": "0x0123",
+    "softdevice_required": "S140 7.3.0",
+    "board_id_in_package": null,
+    "bin_reference_match": "PASS",
+    "uf2_reference_match": "PASS",
+    "hardware_compatibility": "UNKNOWN",
+    "hardware_dfu_test": "UNTESTED"
+  },
+  "wio_memory": {
+    "layout_check": "PASS",
+    "application_start": "0x27000",
+    "application_end_exclusive": "0xD4000",
+    "softdevice_required": "S140 7.3.0",
+    "new_firmware_physical_test": "UNTESTED",
+    "sections": [
+      {
+        "name": ".text",
+        "start": "0x27000",
+        "end_exclusive": "0x90700",
+        "bytes": 431872
+      },
+      {
+        "name": ".ARM.exidx",
+        "start": "0x90700",
+        "end_exclusive": "0x90708",
+        "bytes": 8
+      },
+      {
+        "name": ".data",
+        "start": "0x20006000",
+        "end_exclusive": "0x20007534",
+        "bytes": 5428
+      },
+      {
+        "name": ".bss",
+        "start": "0x20007534",
+        "end_exclusive": "0x2002b6b8",
+        "bytes": 147844
+      },
+      {
+        "name": ".heap",
+        "start": "0x2002b6b8",
+        "end_exclusive": "0x2003f800",
+        "bytes": 82248
+      }
+    ]
+  },
+  "wio_native_tests": {
+    "result": "PASS",
+    "profile": "Wio live radio",
+    "pixel_snapshots": 29,
+    "full_name_bytes": 31,
+    "hardware": "UNTESTED",
+    "hardware_flashed": false
+  },
+  "wio_wasm_tests": {
+    "result": "PASS",
+    "native_wasm_framebuffer_comparisons": 2114,
+    "functional_assertion_groups": 136,
+    "pages": [
+      "Home",
+      "Timezone",
+      "Board",
+      "Animations",
+      "Live Radio / GPS",
+      "Pegel / Rauschen",
+      "Repeater live",
+      "Sound",
+      "GPS Course",
+      "Diagnostics",
+      "Messages",
+      "Recent adverts",
+      "Radio",
+      "Bluetooth",
+      "Advertise",
+      "GPS",
+      "Discovery"
+    ],
+    "pets": 16,
+    "channel_count": 2,
+    "framebuffer_bytes": 1024,
+    "wasm_memory_bytes": 16777216,
+    "hardware_tests": "UNTESTED",
+    "device_access": false,
+    "wasm_sha256": "a53a2227490b0bc698991b47ed59e7f10a9986d129b9ce1632113413f17039cb"
+  },
+  "heltec_wasm_tests": {
+    "result": "PASS",
+    "native_wasm_comparisons": 3223,
+    "framebuffer_bytes": 1024,
+    "fixed_wasm_heap": 16777216,
+    "device_access": false,
+    "hardware": "UNTESTED"
+  },
+  "web_shortcut_tests": {
+    "result": "PASS",
+    "functional_assertions": 26,
+    "profiles": [
+      "Wio",
+      "Heltec"
+    ],
+    "device_access": false,
+    "hardware": "UNTESTED"
+  },
+  "heltec_images": {
+    "meshis_heltec_v43_r2_oled": {
+      "result": "PASS",
+      "environment": "meshis_heltec_v43_r2_oled",
+      "chip": "ESP32-S3",
+      "application_bytes": 1688768,
+      "application_sha256": "8cad58f89b852209f1b3c74a8adb8287ed539156d3b8dffc63916147eac0b0dc",
+      "partition_table_sha256": "bd0f7954aca2ef7d925ee21aaa1f3dc8822d1d6ce5cbbd26a135e5886bfff6ce",
+      "partitions": [
+        {
+          "type": 1,
+          "subtype": 2,
+          "start": 36864,
+          "size": 20480,
+          "label": "nvs",
+          "flags": 0
+        },
+        {
+          "type": 1,
+          "subtype": 0,
+          "start": 57344,
+          "size": 8192,
+          "label": "otadata",
+          "flags": 0
+        },
+        {
+          "type": 0,
+          "subtype": 16,
+          "start": 65536,
+          "size": 6553600,
+          "label": "app0",
+          "flags": 0
+        },
+        {
+          "type": 0,
+          "subtype": 17,
+          "start": 6619136,
+          "size": 6553600,
+          "label": "app1",
+          "flags": 0
+        },
+        {
+          "type": 1,
+          "subtype": 130,
+          "start": 13172736,
+          "size": 3538944,
+          "label": "spiffs",
+          "flags": 0
+        },
+        {
+          "type": 1,
+          "subtype": 3,
+          "start": 16711680,
+          "size": 65536,
+          "label": "coredump",
+          "flags": 0
+        }
+      ],
+      "flash_capacity_bytes": 16777216,
+      "partition_md5": "PASS",
+      "image_checksum_and_hash": "PASS",
+      "filesystem_mount": "SPIFFS.begin(false); stop on failure, no automatic format",
+      "physical_board_variant": "UNVERIFIED",
+      "display_radio_ble_gnss_hardware": "UNTESTED",
+      "hardware_flashed": false
+    },
+    "meshis_heltec_v43_r8_oled": {
+      "result": "PASS",
+      "environment": "meshis_heltec_v43_r8_oled",
+      "chip": "ESP32-S3",
+      "application_bytes": 1692224,
+      "application_sha256": "ddc58aedb49cf38714287ea543c504198ac5844c5374b0de64b5de30b0e70434",
+      "partition_table_sha256": "bd0f7954aca2ef7d925ee21aaa1f3dc8822d1d6ce5cbbd26a135e5886bfff6ce",
+      "partitions": [
+        {
+          "type": 1,
+          "subtype": 2,
+          "start": 36864,
+          "size": 20480,
+          "label": "nvs",
+          "flags": 0
+        },
+        {
+          "type": 1,
+          "subtype": 0,
+          "start": 57344,
+          "size": 8192,
+          "label": "otadata",
+          "flags": 0
+        },
+        {
+          "type": 0,
+          "subtype": 16,
+          "start": 65536,
+          "size": 6553600,
+          "label": "app0",
+          "flags": 0
+        },
+        {
+          "type": 0,
+          "subtype": 17,
+          "start": 6619136,
+          "size": 6553600,
+          "label": "app1",
+          "flags": 0
+        },
+        {
+          "type": 1,
+          "subtype": 130,
+          "start": 13172736,
+          "size": 3538944,
+          "label": "spiffs",
+          "flags": 0
+        },
+        {
+          "type": 1,
+          "subtype": 3,
+          "start": 16711680,
+          "size": 65536,
+          "label": "coredump",
+          "flags": 0
+        }
+      ],
+      "flash_capacity_bytes": 16777216,
+      "partition_md5": "PASS",
+      "image_checksum_and_hash": "PASS",
+      "filesystem_mount": "SPIFFS.begin(false); stop on failure, no automatic format",
+      "physical_board_variant": "UNVERIFIED",
+      "display_radio_ble_gnss_hardware": "UNTESTED",
+      "hardware_flashed": false
+    }
+  },
+  "physical_tests": "UNTESTED"
+}

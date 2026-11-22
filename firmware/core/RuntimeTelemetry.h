@@ -4,9 +4,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include "OledText.h"
+#include "UiInputHints.h"
 namespace meshis {
 struct HeardRepeater {
- uint8_t key[32]={};char name[24]={};uint32_t seen=0,directSeen=0;int16_t rssi=32767;bool hasDirect=false,lastWasDirect=false;
+ uint8_t key[32]={};char name[32]={};uint32_t seen=0,directSeen=0;uint16_t adverts=0;int16_t rssi=32767;bool hasDirect=false,lastWasDirect=false;
 };
 class RuntimeTelemetry {
 public:
@@ -39,7 +41,7 @@ public:
   if(!key || !name || !repeater || !context_)return;unsigned slot=nodesCount_;
   for(unsigned n=0;n<nodesCount_;n++)if(!memcmp(nodes_[n].key,key,32)){slot=n;break;}
   if(slot==nodesCount_){if(nodesCount_<repeaterLimit)++nodesCount_;else {slot=0;for(unsigned n=1;n<nodesCount_;n++)if(uint32_t(now-nodes_[n].seen)>uint32_t(now-nodes_[slot].seen))slot=n;}nodes_[slot]=HeardRepeater{};memcpy(nodes_[slot].key,key,32);}
-  auto& node=nodes_[slot];for(unsigned n=0;n<sizeof(node.name);n++){const uint8_t c=name[n];node.name[n]=c>=32&&c<=126?char(c):c?'?':0;if(!c)break;}node.name[sizeof(node.name)-1]=0;node.seen=now;node.lastWasDirect=directContext_;
+  auto& node=nodes_[slot];for(unsigned n=0;n<sizeof(node.name)-1;n++){const uint8_t c=name[n];node.name[n]=c<32&&c?'?':char(c);if(!c)break;}node.name[sizeof(node.name)-1]=0;node.seen=now;node.lastWasDirect=directContext_;if(node.adverts<65535)++node.adverts;
   if(directContext_ && contextRssi_!=missing){node.hasDirect=true;node.rssi=contextRssi_;node.directSeen=contextAt_;}
  }
  unsigned repeaterCount()const{return nodesCount_;}
@@ -63,15 +65,24 @@ template<class D> void renderNoiseTrace(D& d,const RuntimeTelemetry& data){
  bool previous=false;int prev=0;const unsigned start=64-data.traceCount();for(unsigned i=0;i<data.traceCount();i++){const auto v=data.sampleAt(i);if(v==RuntimeTelemetry::missing){previous=false;continue;}const int x=1+(start+i)*125/63,py=y(v);d.fillRect(x,py,1,1);if(previous)d.fillRect(x,py<prev?py:prev,1,(py>prev?py-prev:prev-py)+1);previous=true;prev=py;}
  d.drawTextEllipsized(0,56,128,"-140..-40dBm / 32s");
 }
-template<class D> void renderRepeaters(D& d,const RuntimeTelemetry& data,uint32_t now,unsigned page,bool active){
- d.setColor(1);d.setTextSize(1);char line[48];const unsigned pages=(data.repeaterCount()+1)/2;snprintf(line,sizeof(line),"REPEATER %u/%u",pages?page%pages+1:0,pages);d.drawTextEllipsized(0,0,128,line);
- if(!data.repeaterCount()){d.drawTextEllipsized(0,22,128,"Noch keine Adverts");d.drawTextEllipsized(0,36,128,"Passiver Empfang");}
- for(unsigned row=0;row<2;row++){const auto node=data.repeater((pages?page%pages:0)*2+row,now);if(!node)break;const int y=14+row*21;d.drawTextEllipsized(0,y,128,node->name);
-  const bool fresh=node->hasDirect&&uint32_t(now-node->directSeen)<=180000;const unsigned age=uint32_t(now-node->directSeen)/1000;
-  if(fresh)snprintf(line,sizeof(line),"%02X%02X%s %ddBm %us",node->key[0],node->key[1],data.shortIdCollision(*node)?"*":"",node->rssi,age);
-  else snprintf(line,sizeof(line),"%02X%02X%s %s",node->key[0],node->key[1],data.shortIdCollision(*node)?"*":"",node->hasDirect?"RSSI alt":node->lastWasDirect?"direkt --":"via Mesh --");
-  d.drawTextEllipsized(0,y+9,128,line);
+// One repeater per screen: the full MeshCore name (31 UTF-8 bytes) fits across two rows.
+template<class D> void renderRepeaters(D& d,const RuntimeTelemetry& data,uint32_t now,unsigned selected,bool active){
+ d.setColor(1);d.setTextSize(1);char line[48];const unsigned count=data.repeaterCount();
+ snprintf(line,sizeof(line),"REPEATER LIVE %u/%u",count?selected%count+1:0,count);d.drawTextEllipsized(0,0,128,line);
+ const auto node=count?data.repeater(selected%count,now):nullptr;
+ if(!node){d.drawTextEllipsized(0,20,128,"Noch keine Adverts");d.drawTextEllipsized(0,32,128,"Empfang laeuft");}
+ else {
+  oledLine(d,0,13,node->name);oledLine(d,0,21,wrappedLineStart(node->name,1));
+  const bool fresh=node->hasDirect&&uint32_t(now-node->directSeen)<=180000;
+  if(node->hasDirect)snprintf(line,sizeof(line),"%02X%02X%s %ddBm",node->key[0],node->key[1],data.shortIdCollision(*node)?"*":"",node->rssi);
+  else snprintf(line,sizeof(line),"%02X%02X%s RSSI --",node->key[0],node->key[1],data.shortIdCollision(*node)?"*":"");
+  d.drawTextEllipsized(0,33,90,line);
+  const int level=fresh?(node->rssi<=-120?0:node->rssi>=-50?5:1+(node->rssi+120)*4/70):0;
+  for(int n=0;n<5;n++){const int h=2+n*2;d.drawRect(96+n*6,43-h,4,h);if(n<level)d.fillRect(96+n*6,43-h,4,h);}
+  const char* source=node->hasDirect?(fresh?"DIR":"ALT"):node->lastWasDirect?"DIR?":"MESH";
+  const unsigned age=uint32_t(now-(node->hasDirect?node->directSeen:node->seen))/1000;
+  snprintf(line,sizeof(line),"%s %us ADV:%u",source,age,node->adverts);d.drawTextEllipsized(0,45,128,line);
  }
- d.drawTextEllipsized(0,56,128,active?"Kurz:Seite / lang:zu":"PRG halten: Liste");
+ d.drawTextEllipsized(0,56,128,active?meshis::inputHint("Auf/Ab: Wahl OK:zu","Kurz: Wahl Halt:zu"):meshis::inputHint("ENTER: Liste","PRG halten: Liste"));
 }
 }

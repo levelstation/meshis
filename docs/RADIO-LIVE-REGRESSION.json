@@ -1,0 +1,27 @@
+{
+  "result": "PASS",
+  "pinned_meshcore": "75b04ef06def54b348400cb1b138afb6749ffd4f",
+  "unchanged_protocol_ble_radio_fem_files": [
+    "src/Mesh.cpp",
+    "src/Dispatcher.cpp",
+    "src/Packet.cpp",
+    "src/Packet.h",
+    "src/helpers/BaseChatMesh.cpp",
+    "src/helpers/BaseChatMesh.h",
+    "src/helpers/esp32/SerialBLEInterface.cpp",
+    "src/helpers/esp32/SerialBLEInterface.h",
+    "src/helpers/nrf52/SerialBLEInterface.cpp",
+    "src/helpers/nrf52/SerialBLEInterface.h",
+    "src/helpers/radiolib/CustomSX1262.h",
+    "src/helpers/radiolib/CustomSX1262Wrapper.h",
+    "variants/heltec_v4/HeltecV4Board.cpp",
+    "variants/heltec_v4/LoRaFEMControl.cpp",
+    "variants/heltec_v4_r8/HeltecV4R8Board.cpp",
+    "variants/heltec_v4_r8/LoRaFEMControl.cpp"
+  ],
+  "existing_tx_failure_counter": "retained",
+  "old_downloads": "UNCHANGED",
+  "old_wio_webassembly": "preserved in wio-rc4",
+  "all_16_sprites": "UNCHANGED",
+  "hardware_flashed": false
+}

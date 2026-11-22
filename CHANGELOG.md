@@ -16,3 +16,7 @@ Eigenes Kanalprofil, eigenständiges Releasepaket, Grundrausch-Schätzung aus vo
 ## 0.2.0-heltec-dev1 – öffentliche Vorschau
 
 Separate Heltec-V4.3-OLED-Simulation im Browser und auf macOS. Gemeinsamer C++-PRG-/Menücode, Live-Pegelkurve, passive Repeater-Liste mit vier Hex-Zeichen, Kanalansicht nach lokaler TX-Annahme und LU-Alert-Parametervorlagen. R2/R8 kompiliert, Hardware UNTESTED. Bestehende Wio-Simulation und Downloadartefakte bleiben erhalten.
+
+## Funkmonitor – Wio RC5 / Heltec dev2
+
+Pegelkurve und Repeater live gemeinsam für Wio und Heltec. Vollständige Kontaktbezeichnungen über zwei OLED-Zeilen, Hex-Kennung, RSSI-Balken, Alter und Advert-Zähler. Direkte Browser-Einstiege; bisherige Wio-Webversion archiviert, alle bisherigen Downloads erhalten. Keine neuen Funkpakete, kein Flash.
