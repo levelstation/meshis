@@ -13,5 +13,11 @@
   "shared_logic_files": "Byte-identical menu, QuickTx, lock state and framebuffer headers across both projects.",
   "personal_paths_or_secrets": "No findings in publication scan; account attribution is controlled by GitHub.",
   "noise": "Existing MeshCore estimate read only; no radio protocol, scanning or calibration changes.",
-  "heltec_4v2": "Roadmap only"
+  "heltec_4v2": "Roadmap only",
+  "menu_gestures": {
+    "1": "Back",
+    "2": "Sound toggle after 1200 ms window",
+    "3": "Lock/unlock, no sound change"
+  },
+  "release": "0.2 RC3"
 }

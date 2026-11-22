@@ -85,13 +85,14 @@ diff --git a/examples/companion_radio/ui-new/UITask.cpp b/examples/companion_rad
 index bc25de7..82f6b39 100644
 --- a/examples/companion_radio/ui-new/UITask.cpp
 +++ b/examples/companion_radio/ui-new/UITask.cpp
-@@ -3,6 +3,29 @@
+@@ -3,6 +3,30 @@
  #include "../MyMesh.h"
  #include "target.h"
  #include <time.h>
 +#include "Meshis.h"
 +#if defined(MESHIS_V2)
 +#include "KeyLock.h"
++#include "MenuActions.h"
 +#include "LockRenderer.h"
 +#include "QuickTx.h"
 +#endif
@@ -930,7 +931,7 @@ index bc25de7..82f6b39 100644
 +  const bool wasOverlay=meshis::keyLock().overlay();
 +  meshis::keyLock().poll(millis());
 +  if(wasOverlay!=meshis::keyLock().overlay())_next_refresh=0;
-+  for(unsigned n=meshis::keyLock().takeDeferredMenus();n;--n)if(curr){curr->handleInput(KEY_CANCEL);_next_refresh=0;}
++  if(meshis::dispatchMenuAction(meshis::keyLock(),*this,[&](){if(curr)curr->handleInput(KEY_CANCEL);}))_next_refresh=0;
 +  quickTx.poll(messageMesh,millis());
 +  c=static_cast<char>(meshis::keyLock().route(static_cast<uint8_t>(c),millis()));
 +#endif

@@ -49,7 +49,7 @@ static bool renderLayouts=false;
   std::unique_ptr<Simulator> sim;
   std::chrono::steady_clock::time_point lastTick,lastPaint;
   std::array<uint8_t,1024> lastPixels;
-  bool savedLux,savedAnim;int savedPet;
+  bool savedLux,savedAnim,savedSound;int savedPet;
 }
 -(NSTextField*)label:(NSString*)title {
   NSTextField* l=[NSTextField labelWithString:title];l.font=[NSFont systemFontOfSize:12];l.lineBreakMode=NSLineBreakByTruncatingTail;
@@ -69,10 +69,11 @@ static bool renderLayouts=false;
   self.preferences=[[NSUserDefaults alloc]initWithSuiteName:@"org.meshis.simulator.demo.preferences"];
   if(!renderLayouts){
     if([self.preferences objectForKey:@"timezoneLux"])sim->setLuxembourg([self.preferences boolForKey:@"timezoneLux"]);
+    if([self.preferences objectForKey:@"soundEnabled"])sim->setSoundEnabled([self.preferences boolForKey:@"soundEnabled"]);
     if([self.preferences objectForKey:@"animations"])sim->setAnimations([self.preferences boolForKey:@"animations"]);
   }
   if(!renderLayouts && Simulator::meshiUi() && [self.preferences objectForKey:@"pet"])sim->selectMeshi((int)[self.preferences integerForKey:@"pet"]);
-  savedPet=sim->meshi();savedLux=sim->luxembourg();savedAnim=sim->animations();
+  savedPet=sim->meshi();savedLux=sim->luxembourg();savedAnim=sim->animations();savedSound=sim->soundEnabled();
   self.window=[[NSWindow alloc]initWithContentRect:NSMakeRect(40,40,MIN(1240,NSScreen.mainScreen.visibleFrame.size.width-60),MIN(840,NSScreen.mainScreen.visibleFrame.size.height-60)) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
   self.window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];self.window.contentMinSize=NSMakeSize(1000,700);self.window.title=@"MESHIS · OLED LAB — SIMULATION ONLY";self.window.delegate=self;
   NSTextField* title=[self label:@"MESHIS / OLED LAB"];title.font=[NSFont boldSystemFontOfSize:22];
@@ -102,7 +103,7 @@ static bool renderLayouts=false;
   NSButton* enter=[self button:@"ENTER" action:@selector(joystick:) tag:13];enter.toolTip=@"Ein Ereignis: Druck auf den Joystick (SW2), keine zweite physische ENTER-Taste.";
   NSButton* reset=[self button:@"RESET" action:@selector(hardwareReset:) tag:0];reset.toolTip=@"Normaler Reset (K2). Einstellungen bleiben erhalten. Kein Factory Reset.";
   self.enterButton=enter;self.resetButton=reset;
-  NSButton* back=[self button:@"MENU / Zurück" action:@selector(joystick:) tag:27];back.toolTip=@"Separate Menü-Taste K1, P0.08; entspricht Zurück im UI.";
+  NSButton* back=[self button:@"MENU / Zurück" action:@selector(joystick:) tag:27];back.toolTip=@"MENU K1, P0.08: 1x Zurück, 2x Sound, 3x Tastensperre innerhalb 1,2 s.";
   EventStack* eventStack=[[EventStack alloc]init];eventStack.orientation=NSUserInterfaceLayoutOrientationVertical;eventStack.spacing=8;eventStack.alignment=NSLayoutAttributeLeading;for(NSView* item in eventViews)[eventStack addArrangedSubview:item];eventStack.translatesAutoresizingMaskIntoConstraints=NO;
   for(NSView* eventView in eventViews)[eventView.widthAnchor constraintEqualToAnchor:eventStack.widthAnchor].active=YES;
   NSScrollView* eventScroll=[[NSScrollView alloc]init];eventScroll.hasVerticalScroller=YES;eventScroll.documentView=eventStack;
@@ -110,7 +111,7 @@ static bool renderLayouts=false;
   [eventScroll.heightAnchor constraintGreaterThanOrEqualToConstant:80].active=YES;
   [eventScroll setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
   NSStackView* hardware=[self row:@[dpad,[self column:@[enter,back,reset]]]];
-  NSTextField* hint=[self label:@"3× MENU / Esc: Sperre · ⌘R: RESET"];hint.font=[NSFont systemFontOfSize:10];
+  NSTextField* hint=[self label:@"2× MENU: Sound · 3×: Sperre · ⌘R: RESET"];hint.font=[NSFont systemFontOfSize:10];
   self.meshis=[[LabPopup alloc]initWithFrame:NSZeroRect pullsDown:NO];for(int i=0;i<Simulator::meshiCount();++i)[self.meshis addItemWithTitle:[NSString stringWithFormat:@"%s · %s",Simulator::meshiName(i),Simulator::meshiDescription(i)]];
   self.meshis.target=self;self.meshis.action=@selector(meshiChanged:);self.meshis.hidden=!Simulator::meshiUi();
   NSStackView* side=[self column:@[[self button:@"STARTANIMATION" action:@selector(replayBoot:) tag:0],self.meshis,[self label:@"ANSICHT"],self.pages,[self label:@"TESTEREIGNISSE — SIMULIERT"],eventScroll,[self label:@"WIO L1 PRO · HARDWARETASTEN"],hardware,hint]];
@@ -187,8 +188,8 @@ static bool renderLayouts=false;
   sim->render();if(Simulator::meshiUi())[self.meshis selectItemAtIndex:sim->meshi()];[self.pages selectItemAtIndex:sim->pageIndex()];self.animate.state=sim->animations()?NSControlStateValueOn:NSControlStateValueOff;self.zone.selectedSegment=sim->luxembourg()?0:1;
   self.window.contentMinSize=NSMakeSize(1000,700);
   self.clockRow.hidden=YES;self.clocks.hidden=YES;
-  if(!renderLayouts && (savedLux!=sim->luxembourg() || savedAnim!=sim->animations() || savedPet!=sim->meshi())){
-    [self.preferences setBool:sim->luxembourg() forKey:@"timezoneLux"];[self.preferences setBool:sim->animations() forKey:@"animations"];savedLux=sim->luxembourg();savedAnim=sim->animations();savedPet=sim->meshi();if(Simulator::meshiUi())[self.preferences setInteger:savedPet forKey:@"pet"];
+  if(!renderLayouts && (savedLux!=sim->luxembourg() || savedAnim!=sim->animations() || savedPet!=sim->meshi() || savedSound!=sim->soundEnabled())){
+    [self.preferences setBool:sim->soundEnabled() forKey:@"soundEnabled"];savedSound=sim->soundEnabled();[self.preferences setBool:sim->luxembourg() forKey:@"timezoneLux"];[self.preferences setBool:sim->animations() forKey:@"animations"];savedLux=sim->luxembourg();savedAnim=sim->animations();savedPet=sim->meshi();if(Simulator::meshiUi())[self.preferences setInteger:savedPet forKey:@"pet"];
   }
   self.status.stringValue=[NSString stringWithUTF8String:sim->status().c_str()];
   auto stamp=[](int64_t value){time_t t=value;tm date{};gmtime_r(&t,&date);char s[40];strftime(s,sizeof(s),"%Y-%m-%d %H:%M:%S",&date);return std::string(s);};

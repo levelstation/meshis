@@ -14,6 +14,7 @@ public:
 class KeyLock {
 public:
   enum class Phase:uint8_t { Unlocked, Closing, Locked, Opening, Joy };
+  enum class MenuAction:uint8_t { None, Back, ToggleSound };
   static constexpr uint32_t windowMs=1200;
 private:
   Phase phase_=Phase::Unlocked;
@@ -41,7 +42,10 @@ public:
     if(++count_==3){count_=deferred_=0;phase_=phase_==Phase::Unlocked?Phase::Closing:Phase::Opening;phaseStart_=now;}
   }
   uint8_t route(uint8_t key,uint32_t now){poll(now);if(key==27){menuPress(now);return 0;}return blocks()?0:key;}
-  uint8_t takeDeferredMenus(){const uint8_t result=phase_==Phase::Unlocked?deferred_:0;deferred_=0;return result;}
+  MenuAction takeMenuAction(){
+    const uint8_t count=phase_==Phase::Unlocked?deferred_:0;deferred_=0;
+    return count==1?MenuAction::Back:count==2?MenuAction::ToggleSound:MenuAction::None;
+  }
 };
 inline KeyLock& keyLock(){static KeyLock instance;return instance;}
 static_assert(sizeof(KeyLock)<=32,"Key lock RAM limit");

@@ -3,6 +3,7 @@
 #include "FramebufferDisplay.h"
 #include "MeshiSprites.h"
 #include "LockRenderer.h"
+#include "MenuActions.h"
 #include <array>
 ColorVal UIColor::window_bkg=0,UIColor::title_bkg=0,UIColor::title_txt=1,UIColor::primary_txt=1,
   UIColor::secondary_txt=1,UIColor::warning_txt=1,UIColor::popup_bkg=0,UIColor::popup_txt=1,UIColor::corp_blue=1;
@@ -34,7 +35,7 @@ Simulator::~Simulator()=default;
 void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clock.set(rtc_clock.getCurrentTime()+impl_->fractional/1000);impl_->fractional%=1000;
 #if defined(MESHIS_V2)
   auto& lock=meshis::keyLock();if(impl_->menuDebounce.sample(impl_->menuDown,simMillis))lock.menuPress(simMillis);lock.poll(simMillis);
-  for(unsigned n=lock.takeDeferredMenus();n;--n)impl_->current->handleInput(KEY_CANCEL);
+  meshis::dispatchMenuAction(lock,impl_->task,[&](){impl_->current->handleInput(KEY_CANCEL);});
   quickTx.poll(messageMesh,simMillis);if(!lock.overlay())impl_->current->poll();
 #else
   impl_->current->poll();
@@ -58,7 +59,7 @@ void Simulator::render(){auto& d=impl_->display;d.startFrame();
   else
 #endif
   impl_->current->render(d);
-  if(!locked() && !cleanBrandMode() && simMillis<impl_->task.alertExpiry){d.setColor(0);d.fillRect(2,21,124,21);d.setColor(1);d.drawRect(2,21,124,21);d.drawTextCentered(64,27,impl_->task.alert);}d.endFrame();}
+  if(!locked() && (!cleanBrandMode() || strncmp(impl_->task.alert,"SOUND ",6)==0) && simMillis<impl_->task.alertExpiry){d.setColor(0);d.fillRect(2,21,124,21);d.setColor(1);d.drawRect(2,21,124,21);d.drawTextCentered(64,27,impl_->task.alert);}d.endFrame();}
 const uint8_t* Simulator::buffer()const{return impl_->display.framebuffer();}
 void Simulator::setUtc(uint32_t v){rtc_clock.set(v);impl_->fractional=0;render();}uint32_t Simulator::utc()const{return rtc_clock.getCurrentTime();}
 int64_t Simulator::local()const{return meshis::localTime(utc(),luxembourg());}
@@ -132,14 +133,14 @@ void Simulator::event(Event e){
 }
 
 void Simulator::resetPreservingSettings(){
-  const NodePrefs saved=impl_->prefs;const uint32_t clock=utc();
+  const NodePrefs saved=impl_->prefs;const uint32_t clock=utc();const bool savedSound=soundEnabled();
   simMillis=0;board=Board{};radio_driver=Radio{};radio_driver.rx=radio_driver.tx=radio_driver.errors=0;
   the_mesh=Mesh{};sensors=SensorManager{};messages={};messageMesh={};nux.reset(0);
 #if defined(MESHIS_V2)
   meshis::keyLock()={};quickTx={};
 #endif
   nuxBatteryMv=board.battery;chargeStatus=meshis::ChargeStatus::NotCharging;nuxLastFrame=0;
-  impl_=std::make_unique<Impl>();impl_->prefs=saved;rtc_clock.set(clock);
+  impl_=std::make_unique<Impl>();impl_->prefs=saved;impl_->task.quiet=!savedSound;rtc_clock.set(clock);
   impl_->current=&impl_->splash;
   render();
 }
@@ -233,3 +234,6 @@ return -1;
 void Simulator::setSimMotion(bool fix,long course,long speed,uint32_t age){sensors.gps.fix=fix;sensors.gps.course=course;sensors.gps.speed=speed;sensors.gps.sample=simMillis-age;render();}
 
 void Simulator::setSimNoise(int dbm){radio_driver.noise=dbm;render();}
+
+bool Simulator::soundEnabled()const{return !impl_->task.isBuzzerQuiet();}
+void Simulator::setSoundEnabled(bool enabled){if(!locked())impl_->task.quiet=!enabled;render();}
