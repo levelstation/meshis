@@ -2,6 +2,8 @@
 
 Die Webseiten Meshis und LU-Alert behalten ihre bestehenden HTML-/WASM-Oberflächen. `worker.mjs` ergänzt nur Dateiauslieferung, anonyme Downloadzählung und den geschützten Statistikzugriff. Die Newsletter-Anmeldung ist vorbereitet und bleibt ohne vollständige Konfiguration sowie `NEWSLETTER_ENABLED=true` deaktiviert.
 
+Der gemeinsame Newsletter liegt im bestehenden NOSRV-Projekt unter `https://www.nosrv.eu/newsletter/`. Für Meshis und LU-Alert setzt `website/project.json` den Wert `newsletterUrl` auf diese Seite: alte Newsletter-Seiten leiten weiter, neue Anmeldungen auf den Projekt-APIs werden ohne Datenübermittlung abgewiesen. Die Downloadstatistiken bleiben pro Projekt erhalten. NOSRV verwendet denselben Worker mit leerem Downloadkatalog und der bereits erzeugten Datenbankmigration. Ein privater Verwaltungszugang für NOSRV wird vor der tatsächlichen Aktivierung separat eingerichtet; Zugangsschlüssel gehören nie in die Quelle.
+
 ## Daten
 
 `download_daily` speichert UTC-Tag, öffentliche Datei-Kennung und Anzahl. Es werden keine IP-Adressen, Browserkennungen, Cookies, Besucher-IDs oder Funkdaten gespeichert. Gezählt werden vollständige erfolgreiche GET-Antworten für registrierte ZIP/BIN/UF2-Dateien; HEAD, Teilabrufe, 304-Antworten und erkannte Vorabladungen zählen nicht. Dies ist keine Messung eindeutiger Personen, abgeschlossener Speichervorgänge oder Installationen. Bots können Zahlen erhöhen. Bei einer Datenbankstörung bleibt der Download erreichbar, der einzelne Aufruf kann dann fehlen.

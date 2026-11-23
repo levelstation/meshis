@@ -55,6 +55,7 @@ function setup(options = {}) {
       '/hello%world.txt': asset('encoded name', 'text/plain'), '/downloads/example.uf2': asset(FILE, 'application/octet-stream'),
       '/downloads/legacy.bin': asset(FILE, 'application/octet-stream'), '/empty.txt': asset('', 'text/plain') },
     catalog: { releases: [{ id: 'release-v1', path: '/downloads/example.uf2' }], legacy: [{ id: 'legacy', path: '/downloads/legacy.bin' }] },
+    ...options.config,
   };
   const worker = createSiteWorker(config, { now: () => time,
     fetch: async (url, init) => { messages.push({ url, ...init, parsed: JSON.parse(init.body) }); return new Response('{}', { status: options.mailFailure ? 503 : 202 }); } });
@@ -353,3 +354,30 @@ test('SQL writes contain no visitor metadata or browser identity', async () => {
 });
 
 test('newsletter requires explicit operator activation even with complete credentials',async()=>{const s=setup();s.enabled();delete s.env.NEWSLETTER_ENABLED;const status=await s.call('/api/newsletter/status');assert.equal((await status.json()).enabled,false);assert.equal((await s.subscribe()).status,503);assert.equal(s.db.rows('newsletter_subscribers').length,0);assert.equal(s.messages.length,0);});
+
+test('project newsletter pages redirect to NOSRV without forwarding submitted data',async()=>{
+  const target='https://www.nosrv.eu/newsletter/';
+  const s=setup({config:{newsletterUrl:target}});s.enabled();
+  for(const path of ['/newsletter','/newsletter/','/newsletter/index.html?email=hidden@example.test']){
+    const response=await s.call(path);assert.equal(response.status,302);assert.equal(response.headers.get('Location'),target);assert.equal(await response.text(),'');
+  }
+  const head=await s.call('/newsletter/',{method:'HEAD'});assert.equal(head.status,302);assert.equal(await head.text(),'');
+  assert.equal((await s.call('/newsletter/',{method:'POST',body:'private data'})).status,405);
+  const status=await (await s.call('/api/newsletter/status')).json();assert.equal(status.enabled,false);assert.equal(status.newsletterUrl,target);
+  const response=await s.subscribe();assert.equal(response.status,409);assert.equal((await response.json()).newsletterUrl,target);
+  assert.equal(s.messages.length,0);assert.equal(s.db.rows('newsletter_subscribers').length,0);
+});
+
+test('central NOSRV confirmation links stay on NOSRV with Brevo and no activation stores nothing',async()=>{
+  const s=setup({config:{project:'nosrv',title:'NOSRV',canonicalOrigin:'https://www.nosrv.eu',catalog:{releases:[],legacy:[]}}});
+  assert.equal((await s.subscribe()).status,503);assert.equal(s.db.rows('newsletter_subscribers').length,0);
+  s.enabled();s.env.NEWSLETTER_PROVIDER='brevo';
+  assert.equal((await s.subscribe()).status,202);
+  const message=s.messages[0];assert.equal(message.url,'https://api.brevo.com/v3/smtp/email');
+  assert.equal(message.parsed.sender.name,'NOSRV');assert.match(message.parsed.subject,/NOSRV.*bestätigen/);
+  const tokens=mailTokens(message);assert.match(tokens.text,/https:\/\/www\.nosrv\.eu\/newsletter\/#confirm=/);
+  assert.equal((await s.post('/api/newsletter/confirm',{token:tokens.confirm})).status,200);
+  assert.equal(s.db.rows('newsletter_subscribers')[0].status,'confirmed');
+  assert.equal((await s.post('/api/newsletter/unsubscribe',{token:tokens.unsubscribe})).status,200);
+  assert.equal(s.db.rows('newsletter_subscribers')[0].status,'unsubscribed');
+});

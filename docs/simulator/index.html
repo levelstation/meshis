@@ -32,7 +32,7 @@
     <p id="console-status" class="console-status" role="status" aria-live="polite">SIM · Initialisierung …</p>
   </section>
   <details class="lab-tools" id="lab-tools">
-    <summary>Labor · Demos, Tests & Anzeige</summary>
+    <summary>Demos & Anzeige</summary>
     <div class="lab-panels">
       <section class="radio-quick" id="funkmonitor" aria-label="Funkmonitor ausprobieren">
         <h2>Funkmonitor · simulierte Demodaten</h2>
@@ -42,14 +42,14 @@
       <section class="render-tools" aria-label="Darstellung und Simulatorstatus">
         <h2>Anzeige & Status</h2>
         <div class="options"><label>Zoom <select id="zoom"><option value="0">Automatisch</option><option value="4">max. 4×</option><option value="8">max. 8×</option><option value="12">max. 12×</option></select></label><label><input type="checkbox" id="grid"> Pixelraster</label><label>Bildrate <select id="rate"><option>5</option><option selected>15</option><option>30</option><option>60</option></select> Hz</label><label><input type="checkbox" id="pause"> Pause</label></div>
-        <p id="fit" class="muted">Lade den gemeinsamen C++-Simulator …</p>
+        <p id="fit" class="muted">Simulator wird geladen …</p>
         <p id="status">Initialisierung …</p>
       </section>
-      <section class="test-tools" aria-label="Simulierte Testereignisse">
-        <h2>Testereignisse · SIMULIERT</h2>
-        <label>Testereignis <select id="event" disabled></select></label>
+      <section class="test-tools" aria-label="Simulierte Ereignisse">
+        <h2>Ereignisse · SIMULIERT</h2>
+        <label>Ereignis <select id="event" disabled></select></label>
         <div class="test-actions"><button id="trigger" type="button" disabled>Ereignis simulieren</button><button id="boot" type="button" disabled>Startanimation zeigen</button></div>
-        <div class="clocks"><p id="utc">UTC: –</p><p id="local">Lokale Simulation: –</p><button id="winter" type="button" disabled>Winterzeit testen</button><button id="summer" type="button" disabled>Sommerzeit testen</button></div>
+        <div class="clocks"><p id="utc">UTC: –</p><p id="local">Lokale Simulation: –</p><button id="winter" type="button" disabled>Winterzeit anzeigen</button><button id="summer" type="button" disabled>Sommerzeit anzeigen</button></div>
       </section>
     </div>
   </details>
@@ -58,7 +58,7 @@
       <p>1× MENU: Zurück · 2×: Sound · 3×: Sperre. Das 1200-ms-Fenster wird abgewartet.</p>
       <p>Sound zeigt den simulierten Summerstatus. Die Website spielt keine echten Gerätetöne. Einstellungen bleiben innerhalb dieser Sitzung erhalten.</p>
   </details>
-  <details><summary>Welche Teile sind echte Firmware?</summary><p>Menüs, Nachrichtenlogik, Figuren, Sperre, Sound-Schalter und Pixelrenderer stammen aus dem C++-Code der Firmware und der Mac-App. WebAssembly führt denselben Simulatoradapter aus. JavaScript stellt nur die Pixel dar und reicht Bedieneingaben weiter. Frequenz, RX/TX, BLE, GPS und Akku sind lokale Testwerte, keine Live-Gerätedaten. Es werden keine Kanäle oder Schlüssel auf einem Gerät angelegt.</p><p>Kanalmenüs: Public und Test. Alle 16 Meshis sind vorhanden.</p><p><a href="BUILD-MANIFEST.json">Build-Nachweis</a> · <a href="../TEST-REPORT.md">Testbericht</a></p><p><a href="wio-rc4/">Bisherige Wio-Simulation im Archiv</a></p></details>
+  <details><summary>Über diese Simulation</summary><p>Probiere die Menüs, Nachrichtenansichten und Tastensperre direkt im Browser aus. Frequenz, RX/TX, BLE, GPS und Akku sind lokale Demodaten. Es gibt keine Verbindung zu einem Funkgerät; Kanäle und Schlüssel auf deinem Tracker bleiben unverändert.</p><p>Kanalmenüs: Public und Test. Alle 16 Meshis sind vorhanden.</p><p><a href="BUILD-MANIFEST.json">Technische Details</a> · <a href="../TEST-REPORT.md">Testbericht</a></p><p><a href="wio-rc4/">Bisherige Wio-Simulation im Archiv</a></p></details>
   
 </main>
 </body></html>

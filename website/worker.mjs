@@ -10,6 +10,8 @@ export function createSiteWorker(config, deps = {}) {
   const transport = deps.fetch || ((...args) => globalThis.fetch(...args));
   const now = () => new Date(deps.now ? deps.now() : Date.now());
   const origin = new URL(config.canonicalOrigin).origin;
+  const newsletterUrl = config.newsletterUrl ? new URL(config.newsletterUrl).href : null;
+  if (newsletterUrl && (!newsletterUrl.startsWith('https://') || new URL(newsletterUrl).origin === origin)) throw new Error('Expected an external HTTPS newsletter page');
   const assets = config.assets || {};
   const decoded = new Map();let decodedBytes=0;
   function assetBytes(path,asset){
@@ -67,9 +69,9 @@ export function createSiteWorker(config, deps = {}) {
     const confirmLink = `${origin}/newsletter/#confirm=${confirmation}`;
     const unsubscribeLink = `${origin}/newsletter/#unsubscribe=${unsubscribe}`;
     const title = String(config.title || config.project);
-    const subject = `${title}: confirm your newsletter subscription`;
-    const text = `You requested newsletter updates from ${title}.\n\nConfirm within 24 hours:\n${confirmLink}\n\nIf you did not request this, ignore this message.\nUnsubscribe:\n${unsubscribeLink}`;
-    const html = `<p>You requested newsletter updates from ${escapeHtml(title)}.</p><p><a href="${confirmLink}">Confirm your subscription</a> within 24 hours.</p><p>If you did not request this, ignore this message.</p><p><a href="${unsubscribeLink}">Unsubscribe</a></p>`;
+    const subject = `${title}: Newsletter-Anmeldung bestätigen`;
+    const text = `Du möchtest Neuigkeiten von ${title} erhalten.\n\nBestätige deine Anmeldung innerhalb von 24 Stunden:\n${confirmLink}\n\nFalls du dich nicht angemeldet hast, ignoriere diese Nachricht.\nAbmelden:\n${unsubscribeLink}`;
+    const html = `<p>Du möchtest Neuigkeiten von ${escapeHtml(title)} erhalten.</p><p><a href="${confirmLink}">Anmeldung bestätigen</a> (innerhalb von 24 Stunden).</p><p>Falls du dich nicht angemeldet hast, ignoriere diese Nachricht.</p><p><a href="${unsubscribeLink}">Abmelden</a></p>`;
     const resend = settings.provider === 'resend';
     const response = await transport(resend ? 'https://api.resend.com/emails' : 'https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
@@ -287,12 +289,19 @@ export function createSiteWorker(config, deps = {}) {
       let response;
       try {
         const url = new URL(request.url);
-        if (url.pathname === '/api/health') {
+        if (newsletterUrl && ['/newsletter', '/newsletter/', '/newsletter/index.html'].includes(url.pathname)) {
+          requireMethod(request, ['GET', 'HEAD']);
+          response = new Response(null, { status: 302, headers: { Location: newsletterUrl, 'Cache-Control': 'no-store' } });
+        } else if (newsletterUrl && url.pathname === '/api/newsletter/subscribe') {
+          requireMethod(request, ['POST']);
+          // Never forward a submitted email address to a different origin.
+          response = json({ ok: false, message: 'Bitte nutze den gemeinsamen NOSRV-Newsletter.', newsletterUrl }, 409);
+        } else if (url.pathname === '/api/health') {
           requireMethod(request, ['GET', 'HEAD']);
           response = json({ ok: true, project: config.project });
         } else if (url.pathname === '/api/newsletter/status') {
           requireMethod(request, ['GET', 'HEAD']);
-          response = json({ enabled: Boolean(newsletterSettings(env)), consentVersion: NEWSLETTER_CONSENT_VERSION });
+          response = json({ enabled: !newsletterUrl && Boolean(newsletterSettings(env)), consentVersion: NEWSLETTER_CONSENT_VERSION, ...(newsletterUrl ? { newsletterUrl } : {}) });
         } else if (url.pathname === '/api/newsletter/subscribe') {
           requireMethod(request, ['POST']);
           response = await subscribe(request, env);

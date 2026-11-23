@@ -1,5 +1,6 @@
 {
   "project": "meshis",
   "title": "Meshis",
-  "canonicalOrigin": "https://meshis.nosrv.eu"
+  "canonicalOrigin": "https://meshis.nosrv.eu",
+  "newsletterUrl": "https://www.nosrv.eu/newsletter/"
 }
