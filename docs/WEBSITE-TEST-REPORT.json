@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "project": "Meshis",
+  "date": "2026-11-23",
+  "result": "PASS_WITH_UNTESTED_AREAS",
+  "source_reference": "website/README.md (shared website source)",
+  "scope": [
+    "compact current Wio and Heltec simulator layout",
+    "download delivery and aggregate counting",
+    "private statistics",
+    "disabled prepared newsletter"
+  ],
+  "automated_checks": {
+    "simulator_layout": {
+      "result": "PASS",
+      "assertions": 151,
+      "scope": "this project; Wio and Heltec"
+    },
+    "worker": {
+      "result": "PASS",
+      "tests": 17,
+      "scope": "shared backend"
+    },
+    "community_ui": {
+      "result": "PASS",
+      "tests": 4,
+      "scope": "shared frontend"
+    },
+    "download_pages": {
+      "result": "PASS",
+      "tests": 10,
+      "scope": "both projects"
+    },
+    "prior_actual_wasm_regressions": {
+      "result": "PASS",
+      "radio_demo_assertions": 26,
+      "discovery_assertions": 24,
+      "heltec_input_assertions": 74,
+      "scope": "this project; existing WASM and input controller"
+    }
+  },
+  "simulator": {
+    "compact_oled_and_controls": true,
+    "integer_pixel_scaling": true,
+    "lab_controls_in_accessible_details": true,
+    "keyboard_and_raw_prg_handlers_preserved": true
+  },
+  "download_counting": {
+    "unit": "successful full GET response for a registered ZIP/BIN/UF2 file",
+    "excludes": [
+      "HEAD",
+      "partial responses",
+      "304 responses",
+      "recognized prefetch",
+      "authenticated verification requests"
+    ],
+    "unique_people": false,
+    "completed_saves": false,
+    "installations": false,
+    "stored_fields": [
+      "UTC day",
+      "public file identifier",
+      "count"
+    ],
+    "limitations": [
+      "bots can increase counts",
+      "database failures can omit counts while downloads remain available"
+    ]
+  },
+  "statistics": {
+    "access": "PRIVATE_ADMIN_CODE",
+    "code_storage": "server-side SHA-256 hash; entered code in current browser tab only",
+    "visitor_identifiers_stored": false
+  },
+  "newsletter": {
+    "status": "PREPARED_DISABLED",
+    "real_email_addresses_captured": 0,
+    "real_messages_sent": 0,
+    "confirmation_tests": "LOCAL_MAIL_MOCK_ONLY",
+    "real_delivery_and_sender_dns": "NOT_RUN"
+  },
+  "integrity": {
+    "firmware_unchanged": true,
+    "wasm_unchanged": true,
+    "existing_download_bytes_unchanged": true
+  },
+  "physical_tests": {
+    "status": "UNTESTED",
+    "scope": "this website change",
+    "device_flashed": false
+  },
+  "browser_visual_qa": {
+    "status": "NOT_RUN",
+    "reason": "CUA was unavailable; no substitute browser was launched"
+  }
+}
