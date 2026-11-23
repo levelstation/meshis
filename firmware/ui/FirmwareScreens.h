@@ -7,6 +7,7 @@
 #include "GpsCourse.h"
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
 #include "RuntimeTelemetry.h"
+#include "ActiveDiscovery.h"
 #endif
 #endif
 class SplashScreen : public UIScreen {
@@ -284,6 +285,9 @@ class HomeScreen : public UIScreen {
 
 public:
   int pageIndex() const { return _page; }
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
+  bool repeaterVisible()const{return _page==HomePage::REPEATERS&&!_classic_menu;}
+#endif
 #if defined(BRAND_CLASSIC_UI)
   bool menuActive()const{return _classic_menu;}
   void selectPage(int index){if(index>=0 && index<Count){_page=index;_classic_menu=false;
@@ -404,7 +408,14 @@ public:
 #endif
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
     if(_page==HomePage::NOISE){meshis::renderNoiseTrace(display,meshis::runtimeTelemetry());return 500;}
-    if(_page==HomePage::REPEATERS){meshis::renderRepeaters(display,meshis::runtimeTelemetry(),millis(),_repeater_page,_repeater_list);return 500;}
+    if(_page==HomePage::REPEATERS){
+      meshis::renderRepeaters(display,meshis::runtimeTelemetry(),millis(),_repeater_page,_repeater_list);
+      const auto& scan=meshis::activeDiscovery();if(scan.active()){
+        char line[40];snprintf(line,sizeof(line),"0H %s %us OK:Stop",scan.stateLabel(),scan.secondsUntil(millis()));
+        display.setColor(0);display.fillRect(0,55,128,9);display.setColor(1);display.drawTextEllipsized(0,56,128,line);
+      }
+      return 500;
+    }
 #endif
 #if defined(MESHIS_BOARD)
     if(_page==HomePage::BOARD){
@@ -807,9 +818,9 @@ display.drawTextEllipsized(0,42,128,meshis::inputHint("Enter: umschalten","PRG h
     const uint8_t key=static_cast<uint8_t>(c);
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
     if(!_classic_menu && _page==HomePage::REPEATERS){
-      if(key==KEY_ENTER){_repeater_list=!_repeater_list;return true;}
+      if(key==KEY_ENTER){_repeater_list=!_repeater_list;if(_repeater_list)meshis::activeDiscovery().start(millis());else meshis::activeDiscovery().stop();return true;}
       if(_repeater_list){
-        if(key==KEY_CANCEL){_repeater_list=false;return true;}
+        if(key==KEY_CANCEL){_repeater_list=false;meshis::activeDiscovery().stop();return true;}
         if(key==KEY_NEXT || key==KEY_RIGHT || key==KEY_DOWN || key==KEY_PREV || key==KEY_LEFT || key==KEY_UP){
           const unsigned pages=meshis::runtimeTelemetry().repeaterCount();
           if(pages)_repeater_page=(_repeater_page+((key==KEY_PREV||key==KEY_LEFT||key==KEY_UP)?pages-1:1))%pages;

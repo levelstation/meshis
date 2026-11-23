@@ -1,0 +1,20 @@
+{
+  "dfu_validation": "PASS",
+  "format": "Adafruit/Nordic legacy DFU 0.5 application-only",
+  "zip_root_files": [
+    "firmware.bin",
+    "manifest.json",
+    "firmware.dat"
+  ],
+  "application_bytes": 441404,
+  "application_sha256": "2ff263da25bbf247f272ea0266bc28d82bcf3fd0c11c50681f9db4d263f2b1ba",
+  "crc16": "0x628b",
+  "device_type": "0x52",
+  "softdevice_required_fwid": "0x0123",
+  "softdevice_required": "S140 7.3.0",
+  "board_id_in_package": null,
+  "bin_reference_match": "PASS",
+  "uf2_reference_match": "PASS",
+  "hardware_compatibility": "UNKNOWN",
+  "hardware_dfu_test": "UNTESTED"
+}

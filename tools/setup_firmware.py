@@ -45,8 +45,8 @@ build_flags = ${env:WioTrackerL1_companion_radio_ble.build_flags}
   "-fdebug-prefix-map=@BUILD_HOME@=/build-user"
   -D MESHIS_BOARD=1
   -D MESHIS_DEFAULT_PET=0
-  -D FIRMWARE_VERSION='"v0.2.0-alpha-rc5"'
-  -D FIRMWARE_BUILD_DATE='"22 Nov 2026"'
+  -D FIRMWARE_VERSION='"v0.2.0-alpha-rc6"'
+  -D FIRMWARE_BUILD_DATE='"23 Nov 2026"'
 '''
 config=config.replace('@BUILD_HOME@',str(Path.home()))
 target=upstream/'platformio.local.ini'

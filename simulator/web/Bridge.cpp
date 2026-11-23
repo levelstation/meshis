@@ -64,3 +64,8 @@ API int sim_preset_argument(int n,int item){return n>=0&&n<sim_channel_count()&&
 API int sim_lock_phase(){return sim().lockPhase();}
 
 API int sim_live_radio(){return Simulator::liveRadio();}
+
+API int sim_discovery_active(){return sim().discoveryActive();}
+API int sim_discovery_requests(){return static_cast<int>(sim().discoveryRequests());}
+API int sim_discovery_replies(){return static_cast<int>(sim().discoveryReplies());}
+API const char* sim_discovery_status(){return sim().discoveryStatus();}

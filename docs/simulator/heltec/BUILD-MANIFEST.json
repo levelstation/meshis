@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0-heltec-dev2",
+  "version": "0.2.0-heltec-dev3",
   "status": "PREVIEW",
   "input": "raw PRG levels; gestures resolved by shared C++ PrgInput",
   "format": "Shared C++ simulator compiled to WebAssembly",
@@ -14,17 +14,36 @@
   "physical_revision": "UNKNOWN",
   "bootloader_compatibility": "UNKNOWN",
   "files": {
-    "core.mjs": "9a0a0a927f342213ff4dc378d59563a9fe1b5718d8c7bd7afdbf1c902614846e",
-    "core.wasm": "28f5a9a24b9b78248293aabdc51f9fea1902f8933422308c69e0a5c3448883eb"
+    "core.mjs": "429fa4de7ab0c8560afdf193e3031cf642df916f0d86e975853418732be5a9b6",
+    "core.wasm": "521058bb991f86009f7fa9ae31621204233f8ec0bca45ca811f3bbe42e48c872"
   },
   "shared_sources": {
+    "firmware/core/ActiveDiscovery.h": "d66c907a7eed47ecc1c4083e656d2c134442a1c210e9966a7676863721081820",
+    "firmware/core/DiscoveryReply.h": "6221697f40fcf00a3fd7b1d3cd3f8bf785f5f5cb332962bc256e12451f743821",
+    "firmware/core/RuntimeTelemetry.h": "c3466d44d702b4d997e0a816ee15e4018797f1733e88ce3868c40cfb33227720",
+    "firmware/ui/FirmwareScreens.h": "d07fdf0d75d8a3cfc4b3abf5d28542836b17860ba8099663cac3ee4ebca71bf9",
+    "simulator/src/Simulator.cpp": "973e959141df5acca3e16e7af7abc817c89763700262c8fe29e439140b182581"
+  },
+  "native_wasm_tests": {
+    "result": "PASS",
+    "native_wasm_comparisons": 3223,
+    "framebuffer_bytes": 1024,
+    "fixed_wasm_heap": 16777216,
+    "device_access": false,
+    "hardware": "UNTESTED"
+  },
+  "source_bundle_headers": {
+    "firmware/core/ActiveDiscovery.h": "d66c907a7eed47ecc1c4083e656d2c134442a1c210e9966a7676863721081820",
+    "firmware/core/DiscoveryQueueGuard.h": "dcb1ffce8a2e22d9218fc8665ce68f3bf47dcd93e462aba35c2f2430c6153259",
+    "firmware/core/DiscoveryReply.h": "6221697f40fcf00a3fd7b1d3cd3f8bf785f5f5cb332962bc256e12451f743821",
     "firmware/core/GpsCourse.h": "02ec54d8d834f3bd03219692f00a6f81eb17e4f3b6a88ab18de2a8ef0c777142",
     "firmware/core/KeyLock.h": "22ed439e0b8d9152f9c9d0103f6751027119c0354d3475782b297ee18cac4819",
+    "firmware/core/MeshCoreDiscovery.h": "3b31865fb6d277dfba9c6773d6ea624ee393c7dd998293237300e98ee98fbc5a",
     "firmware/core/Meshis.h": "04781a23af72d583752028567c315653cafeffdd77390257c049f09682d41eef",
     "firmware/core/PrgInput.h": "54fc9d0b3e58c21651237a6a0fdf9a721d9665f9e2e7b3143bbd87bb63990499",
-    "firmware/core/RuntimeTelemetry.h": "c090d44294911dbf577995f91ff40623a6a1d2f1b198ae93098dd2255ed89b10",
+    "firmware/core/RuntimeTelemetry.h": "c3466d44d702b4d997e0a816ee15e4018797f1733e88ce3868c40cfb33227720",
     "firmware/ui/Branding.h": "f30f81f0fe820cad46e9ee6f6d0fa6cbd847fa6cc3ee76aebf0218127fa7d617",
-    "firmware/ui/FirmwareScreens.h": "62dddfc2b000f8131412d2308d4f200b713a5d3fd371197dbed903dba5fae3fb",
+    "firmware/ui/FirmwareScreens.h": "d07fdf0d75d8a3cfc4b3abf5d28542836b17860ba8099663cac3ee4ebca71bf9",
     "firmware/ui/LockRenderer.h": "67a1e23fb5dcb048b3f29d94d848c1a46540a1645d9673acd64004f5dc2028ea",
     "firmware/ui/MenuActions.h": "962e9fa6a4037136f7aa9b8af3917041a4de7c841379c32572c475e5552b480f",
     "firmware/ui/MeshCoreMessages.h": "c5d2e5b03c98868ae4874ffdcf6e3f4463aee74cb4c4c7b52157fb9a816ada93",
@@ -38,19 +57,10 @@
     "firmware/ui/UiInputHints.h": "a8b00c644257485a93e234245f54deb19424a23869769fccb49808b9a9b4b2d3",
     "firmware/display/FramebufferDisplay.h": "30904f4e0cfc9863451f071ca1520e57585ad88fe61f0cb9ab2c6e295b1622a9",
     "firmware/display/SH1106Framebuffer.h": "52c06c303b5e1721924b6dedf421868eb067ff2d89456aa985a088cb2cdc076b",
-    "firmware/display/SSD1315FramebufferDisplay.h": "ec0f2030a212d53a1bd5a5c503445eb2207290a1a656eb74de9ccef6fdbcdc88",
-    "simulator/src/Simulator.cpp": "63c502ba30f799c11d6fc312c6b5c7114e7f2d307c472c47a27fdac841ee85df",
-    "simulator/src/FirmwareAdapter.h": "73e0ecf04d61bc4be7d6c0495aa305ee15501cb3f16b5d68589ee0f87478eab3",
-    "simulator/web/Bridge.cpp": "3e85d826c8410c2ad3c5367b0a3fabe74c2047c0157aa589a30309ff44d5efbb"
+    "firmware/display/SSD1315FramebufferDisplay.h": "ec0f2030a212d53a1bd5a5c503445eb2207290a1a656eb74de9ccef6fdbcdc88"
   },
-  "native_wasm_tests": {
-    "result": "PASS",
-    "native_wasm_comparisons": 3223,
-    "framebuffer_bytes": 1024,
-    "fixed_wasm_heap": 16777216,
-    "device_access": false,
-    "hardware": "UNTESTED"
-  },
-  "full_repeater_name_bytes": 31,
-  "repeater_view": "one full name over two rows, RSSI/bar/age/advert counter"
+  "hardware_boundary_sources": {
+    "firmware/core/MeshCoreDiscovery.h": "3b31865fb6d277dfba9c6773d6ea624ee393c7dd998293237300e98ee98fbc5a",
+    "firmware/core/DiscoveryQueueGuard.h": "dcb1ffce8a2e22d9218fc8665ce68f3bf47dcd93e462aba35c2f2430c6153259"
+  }
 }

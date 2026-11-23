@@ -11,6 +11,8 @@
 #include "KeyLock.h"
 #include "QuickTx.h"
 #include "GpsCourse.h"
+#include "ActiveDiscovery.h"
+#include "DiscoveryReply.h"
 #define ENV_INCLUDE_GPS 1
 #define UI_SENSORS_PAGE 0
 #define UI_DISCOVER_SCREEN 1
@@ -38,7 +40,7 @@ static uint32_t simMillis=10000;
 inline uint32_t millis(){return simMillis;}
 namespace mesh {
 class RTCClock {uint32_t utc_=1782864000;public:uint32_t getCurrentTime()const{return utc_;}void set(uint32_t v){utc_=v;}};
-struct Packet {uint8_t payload[256]={};};
+struct Packet {uint8_t payload[256]={};unsigned payload_len=0;};
 struct RNG {void random(uint8_t* p,int n){for(int i=0;i<n;++i)p[i]=i+1;}};
 struct Utils {static void toHex(char* out,const uint8_t* p,int n){for(int i=0;i<n;++i)snprintf(out+i*2,3,"%02x",p[i]);}};
 }
@@ -72,6 +74,8 @@ struct Board {uint16_t battery=3984;uint16_t getBattMilliVolts()const{return bat
 struct Radio {
   uint32_t rx=0,tx=0,errors=0;
   float ambient=-117;bool listening=true;
+  float discoveryFrequency=869.618f,discoveryBandwidth=62.5f;uint32_t discoveryAirtime=280;
+  bool discoveryBusy=false,discoveryQueueFail=false,discoveryRespond=true;
   bool isInRecvMode()const{return listening;}float getCurrentRSSI()const{return ambient;}
 #if defined(MESHIS_V2)
   int noise=0;
@@ -84,13 +88,28 @@ struct Radio {
 };
 static Board board;static Radio radio_driver;static SensorManager sensors;static mesh::RTCClock rtc_clock;
 struct Mesh {
-  unsigned sends=0;mesh::RNG rng;mesh::Packet packet;
+  unsigned sends=0,discoverySends=0;mesh::RNG rng;mesh::Packet packet;uint32_t discoveryWord=0xDE000001;
   uint32_t getBLEPin()const{return 0;}void savePrefs(){}bool advert(){++sends;return true;}
-  mesh::RNG* getRNG(){return &rng;}mesh::Packet* createControlData(const uint8_t*,int){return &packet;}
+  mesh::RNG* getRNG(){return &rng;}mesh::Packet* createControlData(const uint8_t* bytes,int len){packet.payload_len=len;memcpy(packet.payload,bytes,len);return &packet;}
   void sendZeroHop(mesh::Packet*){++sends;}ContactInfo* lookupContactByPubKey(const uint8_t*,int){static ContactInfo c;return &c;}
   int getRecentlyHeard(AdvertPath* out,int n){for(int i=0;i<n;++i)out[i]=AdvertPath{};if(n){snprintf(out[0].name,32,"DEMO NODE B");out[0].recv_timestamp=rtc_clock.getCurrentTime()-42;}return 1;}
 };
 static Mesh the_mesh;
+struct MeshCoreDiscovery {
+ uint32_t estimateRequestMs()const{return radio_driver.discoveryAirtime;}
+ float frequencyMHz()const{return radio_driver.discoveryFrequency;}
+ float bandwidthKHz()const{return radio_driver.discoveryBandwidth;}
+ bool canQueue()const{return radio_driver.listening&&!radio_driver.discoveryBusy;}
+ uint32_t randomWord(){return ++the_mesh.discoveryWord;}
+ bool queueDiscovery(const uint8_t* bytes,unsigned len){
+  if(meshis::keyLock().blocks()||!canQueue()||radio_driver.discoveryQueueFail||len!=6||bytes[0]!=0x80||bytes[1]!=0x04)return false;
+  the_mesh.createControlData(bytes,len);the_mesh.sendZeroHop(&the_mesh.packet);++the_mesh.discoverySends;
+  // Conservative completion charge, intentionally also covering the reservation.
+  meshis::activeDiscovery().accountAirtime(simMillis,radio_driver.discoveryAirtime+radio_driver.discoveryAirtime/2+10);
+  return true;
+ }
+};
+
 // Same public adapter contract as MeshCoreMessages; no radio or private keys.
 struct MeshCoreMessages {
 #if defined(MESHIS_V2)

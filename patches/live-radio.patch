@@ -1,16 +1,17 @@
 --- a/examples/companion_radio/ui-new/UITask.cpp
 +++ b/examples/companion_radio/ui-new/UITask.cpp
-@@ -7,6 +7,9 @@
+@@ -7,6 +7,10 @@
  #if defined(MESHIS_V2)
  #include "KeyLock.h"
  #include "MenuActions.h"
 +#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
 +#include "RuntimeTelemetry.h"
++#include "MeshCoreDiscovery.h"
 +#endif
  #include "LockRenderer.h"
  #include "QuickTx.h"
  #endif
-@@ -277,6 +280,15 @@
+@@ -277,6 +281,15 @@
    static uint32_t previousRx=0,previousTx=0,previousErrors=0,nextPower=0,nextBattery=0;
    static bool previousBle=false;
    const uint32_t now=millis();
@@ -26,33 +27,112 @@
    const uint32_t rx=radio_driver.getPacketsRecv(),tx=radio_driver.getPacketsSent(),errors=radio_driver.getTxFailures();
    if(rx!=previousRx) {nux.event(meshis::MeshiEvent::PacketReceived,now);_next_refresh=0;}
    if(tx!=previousTx) {nux.event(meshis::MeshiEvent::PacketTransmitted,now);_next_refresh=0;}
+@@ -428,6 +441,16 @@
+   if(curr && !meshis::keyLock().overlay())curr->poll();
+ #else
+   if (curr) curr->poll();
++#endif
++
++#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
++  MeshCoreDiscovery discoveryAdapter;
++  const bool scanVisible=curr==home && ((HomeScreen*)home)->repeaterVisible() && _display && _display->isOn();
++  meshis::activeDiscovery().poll(discoveryAdapter,millis(),scanVisible,meshis::keyLock().blocks());
++  // Cancel only this scan's not-yet-started packet on stop, expiry or lock.
++  the_mesh.meshisCancelDiscovery(!scanVisible || meshis::keyLock().blocks() || !meshis::activeDiscovery().active());
++  // Explicit two-minute scan session keeps its status visible; no permanent wake lock.
++  if(scanVisible && meshis::activeDiscovery().active() && !meshis::keyLock().blocks())_auto_off=millis()+AUTO_OFF_MILLIS;
+ #endif
+ 
+   if (_display != NULL && _display->isOn()) {
 --- a/examples/companion_radio/MyMesh.h
 +++ b/examples/companion_radio/MyMesh.h
-@@ -145,6 +145,10 @@
+@@ -1,3 +1,7 @@
++#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
++#include "ui-new/ActiveDiscovery.h"
++#include "ui-new/DiscoveryQueueGuard.h"
++#endif
+ #pragma once
+ 
+ #include <Arduino.h>
+@@ -116,6 +120,14 @@
+ 
+   const char *getNodeName();
+   NodePrefs *getNodePrefs();
++#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
++  bool meshisTrackDiscovery(mesh::Packet* packet);
++  void meshisCancelDiscovery(bool force);
++  bool meshisDiscoveryReady(uint32_t requestMs) const {
++    return !_meshisDiscoveryQueue.pending() && _mgr->getOutboundTotal()==0 && _mgr->getFreeCount()>=2 && _radio->isInRecvMode() && !_radio->isReceiving()
++      && getRemainingTxBudget()>=requestMs+_radio->getEstAirtimeFor(MAX_TRANS_UNIT)/2;
++  }
++#endif
+   uint32_t getBLEPin();
+   void setBLEPin(uint32_t active_pin);
+ 
+@@ -145,6 +157,12 @@
    void sendFloodScoped(const mesh::GroupChannel& channel, mesh::Packet* pkt, uint32_t delay_millis=0) override;
  
    void logRxRaw(float snr, float rssi, const uint8_t raw[], int len) override;
 +#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
 +  void logRx(mesh::Packet* packet, int len, float score) override;
 +  void onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, uint32_t timestamp, const uint8_t* app_data, size_t app_data_len) override;
++  void logTx(mesh::Packet* packet, int len) override;
++  void logTxFail(mesh::Packet* packet, int len) override;
 +#endif
    bool isAutoAddEnabled() const override;
    bool shouldAutoAddContactType(uint8_t type) const override;
    bool shouldOverwriteWhenFull() const override;
+@@ -241,6 +259,9 @@
+ 
+   DataStore* _store;
+   NodePrefs _prefs;
++#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
++  meshis::DiscoveryQueueGuard _meshisDiscoveryQueue;
++#endif
+   uint32_t pending_login;
+   uint32_t pending_status;
+   uint32_t pending_telemetry, pending_discovery;   // pending _TELEMETRY_REQ
 --- a/examples/companion_radio/MyMesh.cpp
 +++ b/examples/companion_radio/MyMesh.cpp
-@@ -1,3 +1,6 @@
+@@ -1,3 +1,7 @@
 +#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
 +#include "ui-new/RuntimeTelemetry.h"
++#include "ui-new/DiscoveryReply.h"
 +#endif
  #include "MyMesh.h"
  
  #include <Arduino.h> // needed for PlatformIO
-@@ -288,6 +291,23 @@
+@@ -288,6 +292,49 @@
    return _prefs.multi_acks;
  }
  
 +#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
++// Conservative scan-only guard observes normal TX and uncertain failures as well.
++// It does not replace MeshCore's scheduler or certify regulatory compliance.
++static uint32_t meshisLastObservedTx=0;
++bool MyMesh::meshisTrackDiscovery(mesh::Packet* packet){
++  // Native sendZeroHop returns void. Confirm admission before reporting queued.
++  for(int n=0;n<_mgr->getOutboundTotal();++n)if(_mgr->getOutboundByIdx(n)==packet){_meshisDiscoveryQueue.track(packet);return true;}
++  return false;
++}
++void MyMesh::meshisCancelDiscovery(bool force){
++  if(force || !meshis::activeDiscovery().receiveAllowed(_meshisDiscoveryQueue.requestTag(),millis()))_meshisDiscoveryQueue.cancel(*_mgr);
++}
++
++void MyMesh::logTx(mesh::Packet* packet,int len){
++  _meshisDiscoveryQueue.finished(packet);
++  const uint32_t total=getTotalAirTime(),actual=total-meshisLastObservedTx;meshisLastObservedTx=total;
++  const uint32_t estimate=radio_driver.getEstAirtimeFor(packet->getRawLength());
++  const uint32_t bound=estimate+estimate/2+10;
++  meshis::activeDiscovery().accountAirtime(millis(),actual>bound?actual:bound);
++  BaseChatMesh::logTx(packet,len);
++}
++void MyMesh::logTxFail(mesh::Packet* packet,int len){
++  _meshisDiscoveryQueue.finished(packet);
++  const uint32_t estimate=radio_driver.getEstAirtimeFor(packet->getRawLength());
++  meshis::activeDiscovery().accountAirtime(millis(),estimate+estimate/2+10);
++  BaseChatMesh::logTxFail(packet,len);
++}
 +void MyMesh::logRx(mesh::Packet* packet,int len,float score){
 +  static_assert(MAX_HASH_SIZE<=16,"Telemetry packet hash capacity");
 +  uint8_t hash[MAX_HASH_SIZE];packet->calculatePacketHash(hash);
@@ -61,7 +141,7 @@
 +}
 +void MyMesh::onAdvertRecv(mesh::Packet* packet,const mesh::Identity& id,uint32_t timestamp,const uint8_t* app_data,size_t app_data_len){
 +  uint8_t hash[MAX_HASH_SIZE];packet->calculatePacketHash(hash);
-+  const bool direct=packet->isRouteFlood() && mesh::Packet::isValidPathLen(packet->path_len) && packet->getPathHashCount()==0;
++  const bool direct=packet->getRouteType()!=ROUTE_TYPE_TRANSPORT_DIRECT && mesh::Packet::isValidPathLen(packet->path_len) && packet->getPathHashCount()==0;
 +  auto& telemetry=meshis::runtimeTelemetry();telemetry.beginAdvert(packet,hash,MAX_HASH_SIZE,direct,millis());
 +  // Mesh has already validated the signature; BaseChatMesh retains parsing/replay checks.
 +  BaseChatMesh::onAdvertRecv(packet,id,timestamp,app_data,app_data_len);
@@ -72,7 +152,7 @@
  void MyMesh::logRxRaw(float snr, float rssi, const uint8_t raw[], int len) {
    if (_serial->isConnected() && len + 3 <= MAX_FRAME_SIZE) {
      int i = 0;
-@@ -356,6 +376,9 @@
+@@ -356,6 +403,9 @@
  }
  
  void MyMesh::onDiscoveredContact(ContactInfo &contact, bool is_new, uint8_t path_len, const uint8_t* path) {
@@ -82,3 +162,19 @@
    if (_serial->isConnected()) {
      if (is_new) {
        writeContactRespFrame(PUSH_CODE_NEW_ADVERT, contact);
+@@ -808,6 +858,15 @@
+ }
+ 
+ void MyMesh::onControlDataRecv(mesh::Packet *packet) {
++#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
++  if(packet->payload_len==38 && packet->payload[0]==0x92){
++    uint8_t hash[MAX_HASH_SIZE];packet->calculatePacketHash(hash);
++    const auto* known=lookupContactByPubKey(packet->payload+6,PUB_KEY_SIZE);
++    const bool direct=packet->getRouteType()==ROUTE_TYPE_DIRECT && mesh::Packet::isValidPathLen(packet->path_len) && packet->getPathHashCount()==0;
++    meshis::acceptDiscoveryReply(packet->payload,packet->payload_len,direct,self_id.pub_key,
++      known&&known->type==ADV_TYPE_REPEATER?known->name:nullptr,packet,hash,MAX_HASH_SIZE,millis());
++  }
++#endif
+   if (packet->payload_len + 4 > sizeof(out_frame)) {
+     MESH_DEBUG_PRINTLN("onControlDataRecv(), payload_len too long: %d", packet->payload_len);
+     return;

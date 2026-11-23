@@ -26,6 +26,9 @@ public:
   std::string lastSimulatedText()const;std::string lastSimulatedChannel()const;
   unsigned rxCount()const;int quickPage()const;void setSimMotion(bool fix,long course,long speed,uint32_t age);
 
+  bool discoveryActive()const;unsigned discoveryRequests()const;unsigned discoveryReplies()const;const char* discoveryStatus()const;
+  void setSimDiscoveryRadio(float freq,float bw,uint32_t airtime,bool busy=false,bool replies=true);
+  bool injectDiscoveryReply(uint32_t overrideTag=0,bool wrongRoute=false,bool unknownName=false);
   void resetPreservingSettings();
   bool booting()const;
   unsigned textOverflows()const;

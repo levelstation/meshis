@@ -1,0 +1,32 @@
+{
+  "format": "Shared C++ simulator compiled to WebAssembly",
+  "compiler": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 7.0.1 (ac0578743420bcbe9a4f77d0b6599c25f8d43702)",
+  "framebuffer_bytes": 1024,
+  "display": [
+    128,
+    64,
+    1
+  ],
+  "device_access": false,
+  "live_radio": true,
+  "hardware_tests": "UNTESTED for new Wio build",
+  "files": {
+    "core.mjs": "70a52e460bc90f68cab75e16312b1549dc9481222567d90de9be5572eca5c889",
+    "core.wasm": "a53a2227490b0bc698991b47ed59e7f10a9986d129b9ce1632113413f17039cb"
+  },
+  "shared_sources": {
+    "simulator/web/Bridge.cpp": "3e85d826c8410c2ad3c5367b0a3fabe74c2047c0157aa589a30309ff44d5efbb",
+    "firmware/ui/TxProfile.h": "bfa4101acbd1ad5b47197dc75e224ac63b08588b0ae9b0e764132a645265a576",
+    "firmware/ui/MeshiSprites.h": "d16434fc9d62257c8e0b254b9b9768a0434b4fa1853e62818e5eca72bc904abb",
+    "simulator/src/Simulator.cpp": "63c502ba30f799c11d6fc312c6b5c7114e7f2d307c472c47a27fdac841ee85df",
+    "simulator/src/FirmwareAdapter.h": "73e0ecf04d61bc4be7d6c0495aa305ee15501cb3f16b5d68589ee0f87478eab3",
+    "firmware/ui/FirmwareScreens.h": "62dddfc2b000f8131412d2308d4f200b713a5d3fd371197dbed903dba5fae3fb",
+    "firmware/ui/QuickTx.h": "0118d65d4599b42ef7ca6e3bf94398ad840fd80833eaa1630ca2df3524026af0",
+    "firmware/ui/MenuActions.h": "962e9fa6a4037136f7aa9b8af3917041a4de7c841379c32572c475e5552b480f",
+    "firmware/core/RuntimeTelemetry.h": "c090d44294911dbf577995f91ff40623a6a1d2f1b198ae93098dd2255ed89b10",
+    "firmware/ui/OledText.h": "5c0b83fb5aee1075fd4da2dbf47e1af528fad723814ff5207c18138e292d2053",
+    "firmware/core/KeyLock.h": "22ed439e0b8d9152f9c9d0103f6751027119c0354d3475782b297ee18cac4819",
+    "firmware/ui/LockRenderer.h": "67a1e23fb5dcb048b3f29d94d848c1a46540a1645d9673acd64004f5dc2028ea",
+    "firmware/display/FramebufferDisplay.h": "30904f4e0cfc9863451f071ca1520e57585ad88fe61f0cb9ab2c6e295b1622a9"
+  }
+}

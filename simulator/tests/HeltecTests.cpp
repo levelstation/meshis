@@ -5,6 +5,7 @@
 #include "QuickTx.h"
 #include "RuntimeTelemetry.h"
 #include "RadioTelemetryChecks.h"
+#include "DiscoverySimulatorChecks.h"
 #include "ViewportLayout.h"
 #include <limits>
 #include <filesystem>
@@ -75,7 +76,7 @@ void gestureTests(){using namespace meshis;
  p={};k={};require(one(p,k,0xfffffff0u,700)==PrgInput::Action::Enter,"Held duration survives millis rollover");
 }
 }
-int runHeltecTests(const std::string& output){try{using namespace meshis;gestureTests();telemetryTests();quickModelTests();require(Simulator::heltecPrg(),"Heltec build profile required");std::filesystem::create_directories(output);images=0;
+int runHeltecTests(const std::string& output){try{using namespace meshis;gestureTests();telemetryTests();quickModelTests();require(Simulator::heltecPrg(),"Heltec build profile required");std::filesystem::create_directories(output);images=0;radio_tests::discoverySimulation(require,[&](Simulator& model,const char* name){shot(model,output,name);});
  {Simulator s;s.showHome();const int initial=s.pageIndex();press(s);s.advance(1200);require(s.pageIndex()==initial,"No early single-click action");s.advance(1);require(s.pageIndex()==initial+1&&s.simulatedSends()==0,"Short PRG advances after gesture window");s.prgLevel(true);s.advance(1600);require(s.pageIndex()==initial+1,"Holding Back never confirms halfway");s.prgLevel(false);s.advance(25);require(s.pageIndex()==0&&s.simulatedSends()==0,"Long Back released once");}
  // Every ordinary menu entry is reachable using PRG alone, including the two menu pages.
  std::set<int> selected;
@@ -109,7 +110,7 @@ int runHeltecTests(const std::string& output){try{using namespace meshis;gesture
  }
  {Simulator s;s.goToPage(page("Messages"));enter(s);enter(s);enter(s);enter(s);s.setSimTxFailure(true);enter(s);require(s.quickPage()==int(QuickTx::Page::Failed)&&s.simulatedSends()==0,"Rejected local TX never opens channel as accepted");}
  {Simulator s;s.goToPage(page("Pegel / Rauschen"));s.event(Simulator::NoiseQuiet);for(unsigned n=0;n<64;n++)s.advance(500);shot(s,output,"noise-quiet");s.event(Simulator::NoiseBusy);for(unsigned n=0;n<32;n++)s.advance(500);shot(s,output,"noise-change");s.event(Simulator::NoiseUnknown);s.advance(500);shot(s,output,"noise-unknown");require(s.simulatedSends()==0,"Noise display produces no radio requests");}
- {Simulator s;s.goToPage(page("Repeater live"));shot(s,output,"repeaters-empty");s.event(Simulator::DemoRepeaters);s.event(Simulator::DemoForwarded);s.event(Simulator::DemoCollision);shot(s,output,"repeaters-direct");enter(s);next(s);shot(s,output,"repeaters-via-mesh");back(s);next(s);require(s.pageIndex()!=page("Repeater live"),"Collapsed repeater child list does not trap main-menu navigation");s.goToPage(page("Repeater live"));s.advance(180001);shot(s,output,"repeaters-stale");const unsigned rx=s.rxCount();triple(s);s.advance(450);s.event(Simulator::DemoDirect);require(s.rxCount()==rx+1&&s.simulatedSends()==0,"Passive adverts still received under lock");s.resetPreservingSettings();require(runtimeTelemetry().repeaterCount()==0&&runtimeTelemetry().traceCount()==0,"Normal reset clears temporary RF telemetry");}
+ {Simulator s;s.goToPage(page("Repeater live"));shot(s,output,"repeaters-empty");s.event(Simulator::DemoRepeaters);s.event(Simulator::DemoForwarded);s.event(Simulator::DemoCollision);shot(s,output,"repeaters-direct");enter(s);next(s);shot(s,output,"repeaters-via-mesh");back(s);next(s);require(s.pageIndex()!=page("Repeater live"),"Collapsed repeater child list does not trap main-menu navigation");s.goToPage(page("Repeater live"));s.advance(180001);shot(s,output,"repeaters-stale");const unsigned rx=s.rxCount(),priorSends=s.simulatedSends();triple(s);s.advance(450);s.event(Simulator::DemoDirect);require(s.rxCount()==rx+1&&s.simulatedSends()==priorSends,"Passive adverts still received under lock without additional TX");s.resetPreservingSettings();require(runtimeTelemetry().repeaterCount()==0&&runtimeTelemetry().traceCount()==0,"Normal reset clears temporary RF telemetry");}
  {Simulator s;s.goToPage(page("Messages"));enter(s);enter(s);enter(s);enter(s);triple(s);s.advance(450);enter(s);require(s.simulatedSends()==0,"Triple on TX preview cannot accidentally send");}
  {Simulator s;s.goToPage(page("Messages"));enter(s);next(s);enter(s);s.event(Simulator::BotPartOne);s.event(Simulator::BotPartTwo);std::array<uint8_t,1024> before;std::memcpy(before.data(),s.buffer(),1024);next(s);s.render();require(std::memcmp(before.data(),s.buffer(),1024)!=0,"PRG scrolls Inbox text");shot(s,output,"inbox-scroll");enter(s);shot(s,output,"inbox-next");require(s.simulatedSends()==0,"Inbox reading never sends");back(s);}
  {Simulator s;s.setUtc(1767225600);require(s.local()-s.utc()==3600,"Winter timezone");s.setUtc(1782864000);require(s.local()-s.utc()==7200,"Summer timezone");s.setUtc(1774745999);require(s.local()-s.utc()==3600,"Before summer switch");s.setUtc(1774746000);require(s.local()-s.utc()==7200,"At summer switch");s.setUtc(1792889999);require(s.local()-s.utc()==7200,"Before winter switch");s.setUtc(1792890000);require(s.local()-s.utc()==3600,"At winter switch");}

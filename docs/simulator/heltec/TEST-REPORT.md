@@ -1,6 +1,6 @@
 # Heltec Browser-Vorschau – Testbericht
 
-Status: VORSCHAU · 0.2.0-heltec-dev2 · 22. November 2026.
+Status: VORSCHAU · 0.2.0-heltec-dev3 · 23. November 2026.
 
 Native und WebAssembly verwenden denselben C++-Simulatoradapter, Menücode, PRG-Automaten, Telemetrieansichten und Framebuffer. PASS: 3223 Vergleiche von jeweils 1024 Pixelbytes und elf Zustandswerten, alle Menüs, Events, Vorlagen und Sperrzustände. Fester WASM-Heap: 16 MiB.
 

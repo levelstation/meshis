@@ -20,3 +20,7 @@ Separate Heltec-V4.3-OLED-Simulation im Browser und auf macOS. Gemeinsamer C++-P
 ## Funkmonitor – Wio RC5 / Heltec dev2
 
 Pegelkurve und Repeater live gemeinsam für Wio und Heltec. Vollständige Kontaktbezeichnungen über zwei OLED-Zeilen, Hex-Kennung, RSSI-Balken, Alter und Advert-Zähler. Direkte Browser-Einstiege; bisherige Wio-Webversion archiviert, alle bisherigen Downloads erhalten. Keine neuen Funkpakete, kein Flash.
+
+## 23. November 2026 – aktiver Zero-Hop-Scan
+
+Optionaler nativer Repeater-Scan für Wio und Heltec, begrenzte Sitzung, dynamische Airtime-Abstände und voller Schlüssel. Unsignierte PING-Antworten von signierten Adverts getrennt; Namen aus vorhandenem Cache. Keine zusätzlichen Anfragen bei Sperre/Verlassen, frischer Abstand nach Entsperren. Keine Protokoll-/Kanaländerung, kein Flash.

@@ -1,5 +1,7 @@
 # Meshis – kleine Begleiter fürs Mesh.
 
+**Aktiver Zero-Hop-Scan: Wio RC6 / Heltec dev3 (Vorschau).** [Direkt ausprobieren](https://meshis.nosrv.eu/simulator/?demo=scan) · [Bedienung und Airtime](docs/DISCOVERY.md). Expliziter Start, mindestens 30–35 Sekunden, höchstens zwei Minuten; neue Hardwaretests UNTESTED.
+
 **Neu: Wio RC5 / Heltec dev2 – Funkmonitor-Vorschau.** [Repeater live direkt öffnen](https://meshis.nosrv.eu/simulator/?demo=repeaters) · [Pegel / Rauschen](https://meshis.nosrv.eu/simulator/?demo=noise) · [Bedienung](docs/RADIO-LIVE.md).
 
 **Version 0.2 · v0.2.0-alpha-rc4 · öffentliches Standardprofil.** Alle 16 Meshis bleiben unverändert erhalten. Der gewählte Meshi bewacht bei der Dreifachklick-Sperre das Display mit einem animierten Pixel-Schloss.

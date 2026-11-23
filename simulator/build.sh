@@ -34,13 +34,13 @@ python3 - <<'PLIST'
 import plistlib,os
 from pathlib import Path
 path=Path(os.environ['MESHIS_APP'])/'Info.plist'
-with path.open('wb') as f:plistlib.dump({'CFBundleExecutable':'meshis-simulator','CFBundleIdentifier':'org.meshis.simulator','CFBundleName':'Meshis Simulator','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.2.0','CFBundleVersion':'2026112207','LSMinimumSystemVersion':'14.0','NSHighResolutionCapable':True},f)
+with path.open('wb') as f:plistlib.dump({'CFBundleExecutable':'meshis-simulator','CFBundleIdentifier':'org.meshis.simulator','CFBundleName':'Meshis Simulator','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.2.0','CFBundleVersion':'2026112301','LSMinimumSystemVersion':'14.0','NSHighResolutionCapable':True},f)
 PLIST
 if [ "${MESHIS_HELTEC_PRG:-0}" = 1 ]; then
  python3 - <<'HELTEC_PLIST'
 import os,plistlib
 from pathlib import Path
-p=Path(os.environ['MESHIS_APP'])/'Info.plist';d=plistlib.loads(p.read_bytes());d['CFBundleIdentifier']+='.heltec';d['CFBundleName']+=' Heltec';d['CFBundleVersion']='2026112208';p.write_bytes(plistlib.dumps(d))
+p=Path(os.environ['MESHIS_APP'])/'Info.plist';d=plistlib.loads(p.read_bytes());d['CFBundleIdentifier']+='.heltec';d['CFBundleName']+=' Heltec';d['CFBundleVersion']='2026112302';p.write_bytes(plistlib.dumps(d))
 HELTEC_PLIST
 fi
 codesign --force --sign - "$(dirname "$MESHIS_APP")" >/dev/null 2>&1

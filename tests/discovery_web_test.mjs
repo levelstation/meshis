@@ -1,0 +1,30 @@
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+import {bindRadioDemo} from '../docs/simulator/radio-demo.mjs';
+let assertions=0;const check=(v,m)=>{if(!v)throw Error(m);assertions++;};
+for(const profile of ['','heltec/']){
+ const wasm=resolve('docs/simulator/'+profile+'wasm/');
+ const {default:factory}=await import(pathToFileURL(wasm+'/core.mjs'));
+ const core=await factory({wasmBinary:readFileSync(wasm+'/core.wasm')});core._sim_init();
+ const nodes=Object.fromEntries(['live-repeaters','live-noise','live-scan','oled'].map(id=>[id,{disabled:false,textContent:'',addEventListener(_,fn){this.click=fn;},scrollIntoView(){}}]));
+ const ui=bindRadioDemo({core,element:id=>nodes[id],step(){},paint(){ui.update();}});
+ nodes['live-repeaters'].click();core._sim_step(1000);
+ check(core._sim_sends()===0&&!core._sim_discovery_active(),'Visiting a passive repeater page does not send');
+ nodes['live-scan'].click();
+ check(core._sim_discovery_active()&&core._sim_discovery_requests()===1,'Explicit scan button enqueues one synthetic zero-hop request');
+ check(core._sim_discovery_replies()===1&&core._sim_rx()===4,'Actual shared parser accepts synthetic full-key response');
+ check(nodes['live-scan'].textContent.includes('stoppen'),'Visible stop control follows shared state');
+ core._sim_step(29999);check(core._sim_discovery_requests()===1,'No request earlier than thirty seconds');
+ core._sim_step(6000);check(core._sim_discovery_requests()===2,'Next request after cadence plus jitter');
+ check(core._sim_overflows()===0,'Full names and scan status fit128x64');
+ nodes['live-scan'].click();core._sim_step(35000);
+ check(!core._sim_discovery_active()&&core._sim_discovery_requests()===2,'Explicit stop prevents later requests');
+ nodes['live-scan'].click();core._sim_step(120000);
+ check(!core._sim_discovery_active(),'Session ends after two minutes; no catchup burst');
+ core._sim_reset();check(core._sim_discovery_requests()===0&&!core._sim_discovery_active(),'Reset clears temporary scan state');
+ core._sim_step(2501);const initial=bindRadioDemo({core,element:id=>nodes[id],step(){},paint(){},initialDemo:'scan'});initial.startInitial();
+ check(core._sim_discovery_requests()===1,'Direct scan-demo URL activates only simulated transport');
+ check(core.HEAPU8.length===16777216,'Bounded16MiB WASM memory');
+}
+console.log(JSON.stringify({result:'PASS',functional_assertions:assertions,profiles:['Wio','Heltec'],device_access:false,hardware:'UNTESTED'}));

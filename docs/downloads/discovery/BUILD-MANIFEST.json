@@ -1,0 +1,19 @@
+{
+  "status": "PREVIEW",
+  "date": "2026-11-23",
+  "wio": "RC6",
+  "heltec": "dev3",
+  "hardware_tests": "UNTESTED",
+  "hardware_flashed": false,
+  "source_name": "Meshis-ZeroHop-Source.zip",
+  "files": {
+    "Meshis-Heltec-ZeroHop-dev3-macOS-arm64.zip": "1813b6ac429c1fca846b312051915427ce981d67d123c327f7f89d52a0aaf037",
+    "Meshis-Wio-DFU-VALIDATION.json": "5e3f495c186d41bf1cf39fe12986ca9fd60cf1cad6cd128224fefeb2befc5900",
+    "Meshis-Wio-MEMORY-LAYOUT.json": "f9f66e389cf2ccbc0a1b7e876c85f90fff8417c9afc01617e211802315b52735",
+    "Meshis-Wio-ZeroHop-RC6-DFU.zip": "f0f7d47ba54cd1dca4813a52ab46f0beafb51c682035e18ea966e41e6a17c879",
+    "Meshis-Wio-ZeroHop-RC6-macOS-arm64.zip": "cac68ba896328d8e130521617e8c56d14cad5c52117ab4776c6f0d7f07be441e",
+    "Meshis-Wio-ZeroHop-RC6.bin": "2ff263da25bbf247f272ea0266bc28d82bcf3fd0c11c50681f9db4d263f2b1ba",
+    "Meshis-Wio-ZeroHop-RC6.uf2": "500c65e671a3800eec880e6b10d5977f4acf159cf67f3228974ad1d51e6ca49c",
+    "Meshis-ZeroHop-Source.zip": "556af97419b86aa330f2125103c6b927b97c98c28a507ce6194e506b8fbe481f"
+  }
+}

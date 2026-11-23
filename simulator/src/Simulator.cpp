@@ -18,6 +18,7 @@ struct Simulator::Impl {
   DesktopDisplay display;NodePrefs prefs;UITask task;
   HomeScreen home;SplashScreen splash;MsgPreviewScreen preview;UIScreen* current;
   meshis::PrgInput prg;bool prgDown=false;
+  unsigned discoveryResponses=0;uint32_t discoveryLastReply=0;
   uint32_t fractional=0;bool isLow=false,isCharging=false;meshis::MenuDebounce menuDebounce;bool menuDown=false;
   Impl():home(&task,&rtc_clock,&sensors,&prefs),splash(&task
 #if defined(MESHIS_BOARD)
@@ -29,7 +30,7 @@ Simulator::Simulator(){
   simMillis=10000;rtc_clock.set(1782864000);board=Board{};radio_driver=Radio{};the_mesh=Mesh{};
   nux.reset(simMillis);messages={};messageMesh={};nuxBatteryMv=3984;chargeStatus=meshis::ChargeStatus::NotCharging;
 #if defined(MESHIS_V2)
-  meshis::keyLock()={};quickTx={};meshis::runtimeTelemetry()={};sensors=SensorManager{};
+  meshis::keyLock()={};quickTx={};meshis::runtimeTelemetry()={};meshis::activeDiscovery()={};sensors=SensorManager{};
 #endif
   impl_=std::make_unique<Impl>();render();
 
@@ -53,6 +54,15 @@ void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clo
   meshis::dispatchMenuAction(lock,impl_->task,[&](){impl_->current->handleInput(KEY_CANCEL);});
 #endif
   quickTx.poll(messageMesh,simMillis);if(!lock.overlay())impl_->current->poll();
+#if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
+  MeshCoreDiscovery discoveryAdapter;
+  meshis::activeDiscovery().poll(discoveryAdapter,simMillis,impl_->current==&impl_->home&&impl_->home.repeaterVisible(),lock.blocks());
+  // A synthetic responder exercises the exact shared reply parser; no network API.
+  const uint32_t tag=meshis::activeDiscovery().requestTag();
+  if(radio_driver.discoveryRespond&&tag&&tag!=impl_->discoveryLastReply){
+    impl_->discoveryLastReply=tag;injectDiscoveryReply();
+  }
+#endif
 #else
   impl_->current->poll();
 #endif
@@ -81,15 +91,15 @@ void Simulator::setUtc(uint32_t v){rtc_clock.set(v);impl_->fractional=0;render()
 int64_t Simulator::local()const{return meshis::localTime(utc(),luxembourg());}
 void Simulator::setLuxembourg(bool v){if(locked())return;impl_->prefs.meshis_timezone=v;render();}bool Simulator::luxembourg()const{return impl_->prefs.meshis_timezone==1;}
 void Simulator::setAnimations(bool v){if(locked())return;impl_->prefs.meshis_animations=v;render();}bool Simulator::animations()const{return impl_->prefs.meshis_animations!=0;}
-void Simulator::showHome(){if(locked())return;impl_->current=&impl_->home;impl_->task.alertExpiry=0;}
+void Simulator::showHome(){if(locked())return;meshis::activeDiscovery().stop();impl_->current=&impl_->home;impl_->task.alertExpiry=0;}
 void Simulator::showSplash(){
-  if(locked())return;
+  if(locked())return;meshis::activeDiscovery().stop();
   impl_->splash=SplashScreen(&impl_->task
 #if defined(MESHIS_BOARD)
     ,&impl_->prefs
 #endif
   );impl_->current=&impl_->splash;render();}
-void Simulator::showPreview(){if(locked())return;impl_->preview.addPreview(0xff,"DEMO NODE A","SIMULATION: Demo message");impl_->current=&impl_->preview;}
+void Simulator::showPreview(){if(locked())return;meshis::activeDiscovery().stop();impl_->preview.addPreview(0xff,"DEMO NODE A","SIMULATION: Demo message");impl_->current=&impl_->preview;}
 int Simulator::pageIndex()const{return impl_->home.pageIndex();}int Simulator::pageCount(){return HomeScreen::pageCount();}
 const char* Simulator::pageName(int i){return HomeScreen::pageName(i);}
 void Simulator::goToPage(int index){if(locked() || index<0 || index>=pageCount())return;
@@ -170,7 +180,7 @@ void Simulator::resetPreservingSettings(){
   simMillis=0;board=Board{};radio_driver=Radio{};radio_driver.rx=radio_driver.tx=radio_driver.errors=0;
   the_mesh=Mesh{};sensors=SensorManager{};messages={};messageMesh={};nux.reset(0);
 #if defined(MESHIS_V2)
-  meshis::keyLock()={};quickTx={};meshis::runtimeTelemetry()={};
+  meshis::keyLock()={};quickTx={};meshis::runtimeTelemetry()={};meshis::activeDiscovery()={};
 #endif
   nuxBatteryMv=board.battery;chargeStatus=meshis::ChargeStatus::NotCharging;nuxLastFrame=0;
   impl_=std::make_unique<Impl>();impl_->prefs=saved;impl_->task.quiet=!savedSound;rtc_clock.set(clock);
@@ -300,4 +310,19 @@ return true;
 #else
 return false;
 #endif
+}
+
+bool Simulator::discoveryActive()const{return meshis::activeDiscovery().active();}
+unsigned Simulator::discoveryRequests()const{return the_mesh.discoverySends;}
+unsigned Simulator::discoveryReplies()const{return impl_->discoveryResponses;}
+const char* Simulator::discoveryStatus()const{return meshis::activeDiscovery().stateLabel();}
+void Simulator::setSimDiscoveryRadio(float freq,float bw,uint32_t airtime,bool busy,bool replies){radio_driver.discoveryFrequency=freq;radio_driver.discoveryBandwidth=bw;radio_driver.discoveryAirtime=airtime;radio_driver.discoveryBusy=busy;radio_driver.discoveryRespond=replies;}
+bool Simulator::injectDiscoveryReply(uint32_t overrideTag,bool wrongRoute,bool unknownName){
+ uint8_t payload[38]={0x92,24},key[32],selfKey[32]={},hash[8]={};static unsigned handle;
+ for(unsigned n=0;n<32;n++)key[n]=uint8_t(0xA0+n);key[0]=0xA1;key[1]=0xB2;
+ const uint32_t tag=overrideTag?overrideTag:meshis::activeDiscovery().requestTag();
+ for(unsigned n=0;n<4;n++)payload[2+n]=uint8_t(tag>>(n*8));memcpy(payload+6,key,32);memcpy(hash,payload,8);
+ meshis::runtimeTelemetry().notePacket(&handle,hash,8,-79,simMillis);
+ const bool accepted=meshis::acceptDiscoveryReply(payload,sizeof(payload),!wrongRoute,selfKey,unknownName?nullptr:"DEMO DIREKT REPEATER NORD",&handle,hash,8,simMillis);
+ if(accepted){++radio_driver.rx;++impl_->discoveryResponses;}return accepted;
 }

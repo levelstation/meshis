@@ -1,9 +1,10 @@
 --- a/examples/companion_radio/ui-new/UITask.cpp
 +++ b/examples/companion_radio/ui-new/UITask.cpp
-@@ -9,6 +9,10 @@
+@@ -9,7 +9,11 @@
  #include "MenuActions.h"
  #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
  #include "RuntimeTelemetry.h"
+ #include "MeshCoreDiscovery.h"
 +#endif
 +#if defined(MESHIS_HELTEC_PRG)
 +#include "PrgInput.h"

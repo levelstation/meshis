@@ -1,11 +1,10 @@
 {
-  "date": "2026-11-22",
-  "scope": "Wio and Heltec shared passive radio monitor",
+  "date": "2026-11-23",
+  "scope": "explicit native zero-hop discovery preview",
   "known_personal_markers": 0,
-  "old_downloads": "UNCHANGED",
-  "previous_wio_web": "archived with identical WASM",
-  "hardware_flashed": false,
-  "new_hardware_tests": "UNTESTED",
   "protocol_changed": false,
-  "source_sha256sums": "9a70318d8557932c867d2ee5d0844bb3ca3dec5cba3861553ab3a8d7268533da"
+  "old_downloads": "UNCHANGED",
+  "new_hardware_tests": "UNTESTED",
+  "hardware_flashed": false,
+  "source_sha256sums": "5a566bdf60af727b100d189ae3a66b6872f28d486768b1487e2c73236d3abcd2"
 }
