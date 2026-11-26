@@ -12,6 +12,7 @@ static Simulator* model=nullptr;
 static bool renderLayouts=false;
 int runHeltecTests(const std::string& output);
 int runLiveRadioTests(const std::string& output);
+int runScreenPinTests(const std::string& output);
 @interface PrgLabButton:LabButton @end
 @implementation PrgLabButton
 -(void)mouseDown:(NSEvent*)event{[self highlight:YES];model->prgLevel(true);}
@@ -57,6 +58,7 @@ int runLiveRadioTests(const std::string& output);
   std::chrono::steady_clock::time_point lastTick,lastPaint;
   std::array<uint8_t,1024> lastPixels;
   bool savedLux,savedAnim,savedSound;int savedPet;
+  std::vector<uint8_t> savedPin;
 }
 -(NSTextField*)label:(NSString*)title {
   NSTextField* l=[NSTextField labelWithString:title];l.font=[NSFont systemFontOfSize:12];l.lineBreakMode=NSLineBreakByTruncatingTail;
@@ -80,6 +82,11 @@ int runLiveRadioTests(const std::string& output);
     if([self.preferences objectForKey:@"animations"])sim->setAnimations([self.preferences boolForKey:@"animations"]);
   }
   if(!renderLayouts && Simulator::meshiUi() && [self.preferences objectForKey:@"pet"])sim->selectMeshi((int)[self.preferences integerForKey:@"pet"]);
+  if(!renderLayouts){
+    NSData* pin=[self.preferences dataForKey:@"screenPinRecordV1"];
+    if(pin)sim->restoreScreenPinRecord(static_cast<const uint8_t*>(pin.bytes),pin.length);
+  }
+  savedPin=sim->screenPinRecord();
   savedPet=sim->meshi();savedLux=sim->luxembourg();savedAnim=sim->animations();savedSound=sim->soundEnabled();
   self.window=[[NSWindow alloc]initWithContentRect:NSMakeRect(40,40,MIN(1240,NSScreen.mainScreen.visibleFrame.size.width-60),MIN(840,NSScreen.mainScreen.visibleFrame.size.height-60)) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
   self.window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];self.window.contentMinSize=NSMakeSize(1000,700);self.window.title=@"MESHIS · OLED LAB — SIMULATION ONLY";self.window.delegate=self;
@@ -221,6 +228,10 @@ int runLiveRadioTests(const std::string& output);
   if(!renderLayouts && (savedLux!=sim->luxembourg() || savedAnim!=sim->animations() || savedPet!=sim->meshi() || savedSound!=sim->soundEnabled())){
     [self.preferences setBool:sim->soundEnabled() forKey:@"soundEnabled"];savedSound=sim->soundEnabled();[self.preferences setBool:sim->luxembourg() forKey:@"timezoneLux"];[self.preferences setBool:sim->animations() forKey:@"animations"];savedLux=sim->luxembourg();savedAnim=sim->animations();savedPet=sim->meshi();if(Simulator::meshiUi())[self.preferences setInteger:savedPet forKey:@"pet"];
   }
+  if(!renderLayouts && savedPin!=sim->screenPinRecord()){
+    savedPin=sim->screenPinRecord();
+    [self.preferences setObject:[NSData dataWithBytes:savedPin.data() length:savedPin.size()] forKey:@"screenPinRecordV1"];
+  }
   self.status.stringValue=[NSString stringWithUTF8String:sim->status().c_str()];
   auto stamp=[](int64_t value){time_t t=value;tm date{};gmtime_r(&t,&date);char s[40];strftime(s,sizeof(s),"%Y-%m-%d %H:%M:%S",&date);return std::string(s);};
   self.clocks.stringValue=[NSString stringWithFormat:@"UTC %s | Anzeige %s (%s)",stamp(sim->utc()).c_str(),stamp(sim->local()).c_str(),sim->luxembourg()?"Europe/Luxembourg":"UTC"];
@@ -247,6 +258,7 @@ int runLiveRadioTests(const std::string& output);
 -(void)applicationWillTerminate:(NSNotification*)note{[self.timer invalidate];if(self.monitor)[NSEvent removeMonitor:self.monitor];}
 @end
 int main(int argc,char** argv){@autoreleasepool{
+  if(argc>1 && std::string(argv[1])=="--pin-self-test")return runScreenPinTests(argc>2?argv[2]:"build/screen-pin/screenshots");
   if(Simulator::heltecPrg() && argc>1 && std::string(argv[1])=="--self-test")return runHeltecTests(argc>2?argv[2]:"build/heltec/screenshots");
   if(Simulator::liveRadio() && !Simulator::heltecPrg() && argc>1 && std::string(argv[1])=="--self-test")return runLiveRadioTests(argc>2?argv[2]:"build/radio-live/screenshots");
   if(argc>1 && (std::string(argv[1])=="--self-test" || std::string(argv[1])=="--bless"))return runTests(argc>2?argv[2]:"build/screenshots",std::string(argv[1])=="--bless");

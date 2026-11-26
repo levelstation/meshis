@@ -1,5 +1,9 @@
 # Meshis Changelog
 
+## 26. November 2026 · Bildschirm-PIN
+
+v0.2.0-alpha-rc7 / Heltec dev4 (Vorschau): optionale vierstellige PIN im Menü erstellen, ändern und entfernen. Gemeinsamer C++-Code für Wio, Heltec und die Simulation; maskierte Eingabe, erneute Bestätigung, Wartezeit nach Fehlversuchen, Neustart-Sperre und überprüfte Speicherung mit Fehler-Rücknahme. Bestehende Tasten-, Empfangs- und Kanalprofile bleiben erhalten.
+
 ## 0.2 RC4 · 2026-11-22
 
 Board ist ein einzelner Hauptmenüpunkt, ENTER öffnet das Figuren-Untermenü, MENU verwirft die Vorschau. Alle 16 Sprites, Einstellungen und Gesten bleiben erhalten. Neuer Firmware-/Mac-Build RC4. Bedienbare WebAssembly-Simulation mit gemeinsamem C++-Code, 1872 nativen/WASM-Pixelvergleichen und Browserprüfung. Keine Geräteoperationen.

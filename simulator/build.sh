@@ -20,7 +20,7 @@ if [ "${MESHIS_RADIO_BASELINE:-0}" = 1 ]; then mkdir -p build/radio-live;MESHIS_
 "$MESHIS_CXX" -isysroot "$MESHIS_SDK" -mmacosx-version-min=14.0 -std=c++17 $MESHIS_FLAGS $MESHIS_FEATURE_FLAGS -funsigned-char -fobjc-arc -DARDUINO=10800 -Wno-deprecated-declarations -DBRAND_CLASSIC_UI=1 -DMESHIS_BOARD=1 -DMESHIS_DEFAULT_PET=0 \
   "-ffile-prefix-map=$PWD=." "-fdebug-prefix-map=$PWD=." \
   -I simulator/src -I simulator/shims -I simulator/vendor/adafruit-gfx -I vendor/meshcore/src -I vendor/meshcore -I firmware/core -I firmware/ui -I firmware/display \
-  simulator/src/main.mm simulator/src/ImageExport.mm simulator/src/Simulator.cpp simulator/tests/SimulatorTests.cpp simulator/tests/Meshis2Tests.cpp simulator/tests/HeltecTests.cpp simulator/tests/LiveRadioTests.cpp simulator/vendor/adafruit-gfx/Adafruit_GFX.cpp -framework Cocoa -o "$MESHIS_OUTPUT"
+  simulator/src/main.mm simulator/src/ImageExport.mm simulator/src/Simulator.cpp simulator/tests/SimulatorTests.cpp simulator/tests/Meshis2Tests.cpp simulator/tests/HeltecTests.cpp simulator/tests/LiveRadioTests.cpp simulator/tests/ScreenPinTests.cpp simulator/vendor/adafruit-gfx/Adafruit_GFX.cpp -framework Cocoa -o "$MESHIS_OUTPUT"
 if [ "${SIM_SANITIZE:-0}" = 1 ] || [ "${MESHIS_RADIO_BASELINE:-0}" = 1 ]; then exit 0;fi
 MESHIS_APP='simulator/dist/Meshis Simulator.app/Contents'
 if [ "${MESHIS_HELTEC_PRG:-0}" = 1 ]; then MESHIS_APP='simulator/dist/Meshis Heltec Simulator.app/Contents';fi

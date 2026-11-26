@@ -7,10 +7,17 @@ if not upstream.exists():
  subprocess.run(['git','clone','https://github.com/meshcore-dev/MeshCore.git',str(upstream)],check=True)
  subprocess.run(['git','-C',str(upstream),'checkout','--detach',PIN],check=True)
 assert subprocess.check_output(['git','-C',str(upstream),'rev-parse','HEAD'],text=True).strip()==PIN,'Different checkout: preserve it and prepare a separate pinned source folder.'
+pin_ui=ROOT/'tools/setup_screen_pin_ui.py'
+if pin_ui.exists():subprocess.run(['python3',str(pin_ui),'strip'],check=True)
 # Remove only our known additive Heltec overlay before preparing another target.
 heltec=ROOT/'patches/heltec-prg.patch'
 if heltec.exists() and subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(heltec)],capture_output=True).returncode==0:
  subprocess.run(['git','-C',str(upstream),'apply','--reverse',str(heltec)],check=True)
+# PIN storage is additive and removed before shared overlays to preserve their baseline.
+# Reverse-check failures leave local edits untouched; apply below fails clearly on conflict.
+pin_storage=ROOT/'patches/screen-pin-storage.patch'
+if pin_storage.exists() and subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(pin_storage)],capture_output=True).returncode==0:
+ subprocess.run(['git','-C',str(upstream),'apply','--reverse',str(pin_storage)],check=True)
 live=ROOT/'patches/live-radio.patch'
 if live.exists() and subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(live)],capture_output=True).returncode==0:
  subprocess.run(['git','-C',str(upstream),'apply','--reverse',str(live)],check=True)
@@ -23,6 +30,10 @@ if live.exists():
  if subprocess.run(['git','-C',str(upstream),'apply','--check',str(live)],capture_output=True).returncode==0:
   subprocess.run(['git','-C',str(upstream),'apply',str(live)],check=True)
  else:assert subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(live)],capture_output=True).returncode==0,'Shared radio overlay conflict; no reset performed'
+if pin_storage.exists():
+ if subprocess.run(['git','-C',str(upstream),'apply','--check',str(pin_storage)],capture_output=True).returncode==0:
+  subprocess.run(['git','-C',str(upstream),'apply',str(pin_storage)],check=True)
+ else:assert subprocess.run(['git','-C',str(upstream),'apply','--reverse','--check',str(pin_storage)],capture_output=True).returncode==0,'PIN storage overlay conflicts with local edits; no reset or deletion performed'
 def copy(source,destination):
  destination.parent.mkdir(parents=True,exist_ok=True)
  if destination.exists() and destination.read_bytes()!=source.read_bytes():
@@ -45,12 +56,13 @@ build_flags = ${env:WioTrackerL1_companion_radio_ble.build_flags}
   "-fdebug-prefix-map=@BUILD_HOME@=/build-user"
   -D MESHIS_BOARD=1
   -D MESHIS_DEFAULT_PET=0
-  -D FIRMWARE_VERSION='"v0.2.0-alpha-rc6"'
-  -D FIRMWARE_BUILD_DATE='"23 Nov 2026"'
+  -D FIRMWARE_VERSION='"v0.2.0-alpha-rc7"'
+  -D FIRMWARE_BUILD_DATE='"26 Nov 2026"'
 '''
 config=config.replace('@BUILD_HOME@',str(Path.home()))
 target=upstream/'platformio.local.ini'
 if target.exists() and target.read_text()!=config:
  backup=ROOT/'build/source-backups'/hashlib.sha256(target.read_bytes()).hexdigest()/'platformio.local.ini';backup.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(target,backup)
 target.write_text(config)
+if pin_ui.exists():subprocess.run(['python3',str(pin_ui),'apply'],check=True)
 print('PASS: pinned application sources and shared UI prepared. No device access, upload, reset, erase or key changes.')

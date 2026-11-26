@@ -1,0 +1,10 @@
+{
+  "result": "PASS",
+  "hardware_input": "Heltec PRG",
+  "native_wasm_pixel_comparisons": 2257,
+  "functional_groups": 55,
+  "pin_value_exports": false,
+  "device_access": false,
+  "fixed_wasm_heap": 16777216,
+  "wasm_sha256": "9eda180df235a6ee3b29ebd8e478388148f8628e4a0cbb0888bab7359e74e685"
+}

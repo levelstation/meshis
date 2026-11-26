@@ -53,6 +53,7 @@ struct NodePrefs {char node_name[32]="DEMO NODE";uint8_t meshis_timezone=0,meshi
 #if defined(MESHIS_BOARD)
 uint8_t meshis_pet=MESHIS_DEFAULT_PET;
 #endif
+meshis::PinRecord meshis_screen_pin;
 float freq=0.0f,bw=0.0f;int tx_power_dbm=0;
 NodePrefs(){
 #if defined(MESHIS_V2)
@@ -89,7 +90,8 @@ struct Radio {
 static Board board;static Radio radio_driver;static SensorManager sensors;static mesh::RTCClock rtc_clock;
 struct Mesh {
   unsigned sends=0,discoverySends=0;mesh::RNG rng;mesh::Packet packet;uint32_t discoveryWord=0xDE000001;
-  uint32_t getBLEPin()const{return 0;}void savePrefs(){}bool advert(){++sends;return true;}
+  bool pinSaveFail=false;
+  uint32_t getBLEPin()const{return 0;}void savePrefs(){}bool saveScreenPinPrefs(){return !pinSaveFail;}bool advert(){++sends;return true;}
   mesh::RNG* getRNG(){return &rng;}mesh::Packet* createControlData(const uint8_t* bytes,int len){packet.payload_len=len;memcpy(packet.payload,bytes,len);return &packet;}
   void sendZeroHop(mesh::Packet*){++sends;}ContactInfo* lookupContactByPubKey(const uint8_t*,int){static ContactInfo c;return &c;}
   int getRecentlyHeard(AdvertPath* out,int n){for(int i=0;i<n;++i)out[i]=AdvertPath{};if(n){snprintf(out[0].name,32,"DEMO NODE B");out[0].recv_timestamp=rtc_clock.getCurrentTime()-42;}return 1;}

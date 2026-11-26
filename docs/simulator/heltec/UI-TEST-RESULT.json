@@ -3,7 +3,7 @@
   "browser_input_assertions": 74,
   "model": "actual Heltec WebAssembly",
   "framebuffer_bytes": 1024,
-  "wasm_sha256": "521058bb991f86009f7fa9ae31621204233f8ec0bca45ca811f3bbe42e48c872",
+  "wasm_sha256": "9eda180df235a6ee3b29ebd8e478388148f8628e4a0cbb0888bab7359e74e685",
   "hardware": "UNTESTED",
   "device_access": false
 }

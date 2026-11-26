@@ -8,21 +8,47 @@
     1
   ],
   "device_access": false,
+  "screen_pin": true,
+  "pin_persistence": "current browser session only",
   "live_radio": true,
   "hardware_tests": "UNTESTED for new Wio build",
   "files": {
-    "core.mjs": "79a58945f0e3b86151b860a8bdcf4c034a7d0666683a83a226a38a007aa9e62d",
-    "core.wasm": "6c84fd4231f4403afa63b29306ed8288940e1788b20e010d55278e8881d3b9f0"
+    "core.mjs": "f4cb2f71d0ba9966414b5ec12275c298b8232553e783f486f07f7aaad919c449",
+    "core.wasm": "015a0a0ae191bcf9b7bc73142b3d61699c36cd07f5ea6841571dc5bfc6870753"
   },
   "shared_sources": {
+    "firmware/core/ScreenPin.h": "56482a38c9237e267bf68bc5c2f74259ffb6008ca99f6f63d834deabfb0acddb",
+    "firmware/core/PrgInput.h": "5c4ef08927adf1f9f803cc0b2ae77af0b5bfe4b45ffe6a58dc06b16493b06114",
+    "firmware/ui/ScreenPinRenderer.h": "10c1de33d37078d0f6ea7f9556c58a37373de1320f4c29e2c59481e032358f51",
+    "simulator/web/Bridge.cpp": "ca0ed7e18f2a0e41281733ddbc4f348aabc70582ef9320458becf52ad2dbc2fc",
+    "firmware/ui/TxProfile.h": "bfa4101acbd1ad5b47197dc75e224ac63b08588b0ae9b0e764132a645265a576",
+    "firmware/ui/MeshiSprites.h": "d16434fc9d62257c8e0b254b9b9768a0434b4fa1853e62818e5eca72bc904abb",
+    "simulator/src/Simulator.cpp": "ecde9dc3fd7bb6028da25b0b261966a21ebefc9072a8e927ef0a7d5e5f93d505",
+    "simulator/src/FirmwareAdapter.h": "cb699de413c5acb04e256bb8a7d6c2b8cd0aff94a456d0ac40a17fd855f7ad48",
+    "firmware/ui/FirmwareScreens.h": "27acfe36408cdc54115d5d53e3f483e065ed52df5c2bdab9d71edcbc8ff1d3e1",
+    "firmware/ui/QuickTx.h": "0118d65d4599b42ef7ca6e3bf94398ad840fd80833eaa1630ca2df3524026af0",
+    "firmware/ui/MenuActions.h": "962e9fa6a4037136f7aa9b8af3917041a4de7c841379c32572c475e5552b480f",
+    "firmware/core/RuntimeTelemetry.h": "c3466d44d702b4d997e0a816ee15e4018797f1733e88ce3868c40cfb33227720",
     "firmware/core/ActiveDiscovery.h": "d66c907a7eed47ecc1c4083e656d2c134442a1c210e9966a7676863721081820",
     "firmware/core/DiscoveryReply.h": "6221697f40fcf00a3fd7b1d3cd3f8bf785f5f5cb332962bc256e12451f743821",
-    "firmware/core/RuntimeTelemetry.h": "c3466d44d702b4d997e0a816ee15e4018797f1733e88ce3868c40cfb33227720",
-    "firmware/ui/FirmwareScreens.h": "d07fdf0d75d8a3cfc4b3abf5d28542836b17860ba8099663cac3ee4ebca71bf9",
-    "simulator/src/Simulator.cpp": "973e959141df5acca3e16e7af7abc817c89763700262c8fe29e439140b182581"
+    "firmware/ui/OledText.h": "5c0b83fb5aee1075fd4da2dbf47e1af528fad723814ff5207c18138e292d2053",
+    "firmware/core/KeyLock.h": "8e82cca6f3f342e6391cbc9b623c8cb198783b38d65ac45071e464c74b8e73de",
+    "firmware/ui/LockRenderer.h": "07a0ee1bebadfff8bb079e5cc593e83c470b96ade394111a2c959b319996ee0d",
+    "firmware/display/FramebufferDisplay.h": "30904f4e0cfc9863451f071ca1520e57585ad88fe61f0cb9ab2c6e295b1622a9"
   },
   "hardware_boundary_sources": {
     "firmware/core/MeshCoreDiscovery.h": "3b31865fb6d277dfba9c6773d6ea624ee393c7dd998293237300e98ee98fbc5a",
     "firmware/core/DiscoveryQueueGuard.h": "dcb1ffce8a2e22d9218fc8665ce68f3bf47dcd93e462aba35c2f2430c6153259"
+  },
+  "version": "v0.2.0-alpha-rc7",
+  "pin_tests": {
+    "result": "PASS",
+    "hardware_input": "Wio joystick/MENU",
+    "native_wasm_pixel_comparisons": 969,
+    "functional_groups": 55,
+    "pin_value_exports": false,
+    "device_access": false,
+    "fixed_wasm_heap": 16777216,
+    "wasm_sha256": "015a0a0ae191bcf9b7bc73142b3d61699c36cd07f5ea6841571dc5bfc6870753"
   }
 }

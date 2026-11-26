@@ -6,11 +6,11 @@ public:
   enum class Action:uint8_t { None, Next, Enter, Back, ToggleSound };
   static constexpr uint32_t debounceMs=25,confirmMs=600,backMs=1500;
 private:
-  bool raw_=false,stable_=false,lockedOnDown_=false;
+  bool raw_=false,stable_=false,lockedOnDown_=false,pinOnDown_=false;
   uint32_t changed_=0,downAt_=0;
 public:
   bool pressed()const{return raw_ || stable_;}
-  void cancel(KeyLock& lock){raw_=stable_=lockedOnDown_=false;lock.cancelClicks();lock.setInputHeld(false);}
+  void cancel(KeyLock& lock){raw_=stable_=lockedOnDown_=pinOnDown_=false;lock.cancelClicks();lock.setInputHeld(false);}
   Action sample(bool pressed,uint32_t now,KeyLock& lock){
     if(pressed!=raw_){raw_=pressed;changed_=now;}
     // Gate Quick TX immediately on the raw edge; only stable edges create actions.
@@ -18,11 +18,15 @@ public:
     Action action=Action::None;
     if(raw_!=stable_ && uint32_t(now-changed_)>=debounceMs){
       stable_=raw_;
-      if(stable_){downAt_=changed_;lockedOnDown_=lock.overlay();}
+      if(stable_){downAt_=changed_;lockedOnDown_=lock.overlay();pinOnDown_=screenPin().entryActive();}
       else {
         const uint32_t held=uint32_t(changed_-downAt_);
         lock.setInputHeld(false);
-        if(held>=confirmMs){
+        if(pinOnDown_){
+          lock.cancelClicks();
+          if(screenPin().entryActive())screenPin().input(held>=backMs?ScreenPin::Input::Back:held>=confirmMs?ScreenPin::Input::Confirm:ScreenPin::Input::Next,now);
+          lock.poll(now);
+        }else if(held>=confirmMs){
           lock.cancelClicks();
           if(!lock.overlay() && !lockedOnDown_)action=held>=backMs?Action::Back:Action::Enter;
         }else lock.menuPress(now);

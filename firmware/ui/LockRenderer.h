@@ -23,7 +23,7 @@ template<class D> unsigned renderLock(D& d,const KeyLock& lock,uint8_t pet,uint3
     pixelLock(d,77,22,open);
   } else if(elapsed<250){d.fillRect(77,21,2,2);d.fillRect(82,16,2,2);d.fillRect(87,23,2,2);}
   d.drawTextCentered(64,46,"RADIO ACTIVE");
-  d.drawTextCentered(64,56,opening?"Zurueck zur Ansicht":meshis::inputHint("3x MENU TO UNLOCK","3x PRG TO UNLOCK"));
+  d.drawTextCentered(64,56,opening?"Zurueck zur Ansicht":(screenPin().enabled()?meshis::inputHint("3x MENU: PIN","3x PRG: PIN"):meshis::inputHint("3x MENU TO UNLOCK","3x PRG TO UNLOCK")));
   return phase==KeyLock::Phase::Locked?1000:100;
 }
 template<class D> unsigned renderClassicLock(D& d,const KeyLock& lock,const char* title,uint32_t now){
@@ -35,7 +35,7 @@ template<class D> unsigned renderClassicLock(D& d,const KeyLock& lock,const char
     pixelLock(d,59,22,open);
   }
   d.drawTextCentered(64,45,opening?"KEYS UNLOCKED":"KEYS LOCKED");
-  d.drawTextCentered(64,56,opening?"Zurueck zur Ansicht":meshis::inputHint("3x MENU TO UNLOCK","3x PRG TO UNLOCK"));
+  d.drawTextCentered(64,56,opening?"Zurueck zur Ansicht":(screenPin().enabled()?meshis::inputHint("3x MENU: PIN","3x PRG: PIN"):meshis::inputHint("3x MENU TO UNLOCK","3x PRG TO UNLOCK")));
   return phase==KeyLock::Phase::Locked?1000:100;
 }
 }

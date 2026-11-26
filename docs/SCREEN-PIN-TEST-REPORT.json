@@ -1,0 +1,123 @@
+{
+  "date": "2026-11-26",
+  "result": "PASS",
+  "application": "Meshis",
+  "wio_version": "v0.2.0-alpha-rc7",
+  "heltec_version": "v0.2.0-heltec-dev4",
+  "heltec_status": "PREVIEW",
+  "hardware_flashed": false,
+  "physical_pin_tests": "UNTESTED",
+  "checks": {
+    "wio": {
+      "result": "PASS",
+      "application": "Meshis",
+      "hardware_input": "Wio joystick/MENU",
+      "assertions": 981,
+      "pixel_snapshots": 28,
+      "hardware_flashed": false
+    },
+    "heltec": {
+      "result": "PASS",
+      "application": "Meshis",
+      "hardware_input": "Heltec PRG",
+      "assertions": 952,
+      "pixel_snapshots": 28,
+      "hardware_flashed": false
+    },
+    "wio-asan": {
+      "result": "PASS",
+      "application": "Meshis",
+      "hardware_input": "Wio joystick/MENU",
+      "assertions": 981,
+      "pixel_snapshots": 28,
+      "hardware_flashed": false
+    },
+    "heltec-asan": {
+      "result": "PASS",
+      "application": "Meshis",
+      "hardware_input": "Heltec PRG",
+      "assertions": 952,
+      "pixel_snapshots": 28,
+      "hardware_flashed": false
+    }
+  },
+  "firmware": {
+    "wio": {
+      "result": "PASS",
+      "hardware_flashed": false,
+      "files": {
+        "DFU-VALIDATION.json": "a9d2e5ddf83ae23129ec544ab53f91ec61d619d36dc52bd4ff0bc6d89d2c51b9",
+        "MEMORY-LAYOUT.json": "3bce65fb4ad0c1a14620a2bbb4e8e3c383834b36dcb670b2bd852300f992b2f2",
+        "Meshis-2-Wio-L1-Pro-DFU.zip": "49c2bfd46438d6bf86d2464b74f47c0f2d7b6a76b1da2710353a3fec8b3421e1",
+        "Meshis-2-Wio-L1-Pro.bin": "feaab5370c2292ffe3f7fbe5518416ada863105f20386d5cda841dc3907cba67",
+        "Meshis-2-Wio-L1-Pro.uf2": "9ad80fb61e957b79cc883cb89f337c60a797b923ab220b3dca9c320e68095c5a",
+        "SHA256SUMS": "fd9f9fa82e424a19a5b48a51d8edeaad50814c0c5d92e3dc8541bf714187b5a6"
+      }
+    },
+    "heltec-r2": {
+      "result": "PASS",
+      "hardware_flashed": false,
+      "files": {
+        "IMAGE-INFO.txt": "d7e27b57e42745f205ffe772e60d00c924d6be3bdc9318127260170bb9d2d8cd",
+        "IMAGE-VALIDATION.json": "26871daf305c1f0363eccea7ad3d1f9282da9c4d313233e12a1ab4d7aaea6662",
+        "firmware.bin": "9183691473ac9a5d53eb8503f62d5ee3c43382853952dc8c2a32461d2e720549"
+      }
+    },
+    "heltec-r8": {
+      "result": "PASS",
+      "hardware_flashed": false,
+      "files": {
+        "IMAGE-INFO.txt": "be3ae178f7b2fd8f858a1f67b569f4c6ade4730b973fd2b85c6d8836aa14a70b",
+        "IMAGE-VALIDATION.json": "a9ffea8ab678aed72244a06647510a08b399588362d960a8aa1222bbd51b4567",
+        "firmware.bin": "c2383291e75650a54b0b9a65ea1b55523300a2c502e0ccb136f61101becab4c4"
+      }
+    }
+  },
+  "persistence": {
+    "status": "PASS",
+    "result": "PASS: 20 persistence cases; atomic replace/SPIFFS fallback; write/open/hash/parse/rename failures; power-gap backup load; malformed prefs fail closed; valid legacy unchanged",
+    "actual_functions": [
+      "NodePrefs::loadSerial",
+      "DataStore::loadPrefs",
+      "DataStore::saveScreenPinPrefs",
+      "ConfigSerializer::loadSerial/saveSerial"
+    ],
+    "test_filesystem": "fault-injecting native mock, not physical flash",
+    "sanitizers": "address+undefined",
+    "actual_upstream_modified": false
+  },
+  "coverage": [
+    "create/confirm/change/remove four digits and leading zero",
+    "old PIN required for change/removal",
+    "wrong PIN, 30-second cooldown, cancel and timeout",
+    "restart re-locks with stored verifier",
+    "damaged stored record fails closed",
+    "storage-error rollback on create/change/remove",
+    "MENU/PRG debounce and gesture arbitration",
+    "RX during lock, no unintended TX",
+    "all 16 unchanged Meshis where available",
+    "OLED 128x64 pixel bounds"
+  ],
+  "browser": {
+    "wio": {
+      "result": "PASS",
+      "hardware_input": "Wio joystick/MENU",
+      "native_wasm_pixel_comparisons": 969,
+      "functional_groups": 55,
+      "pin_value_exports": false,
+      "device_access": false,
+      "fixed_wasm_heap": 16777216,
+      "wasm_sha256": "015a0a0ae191bcf9b7bc73142b3d61699c36cd07f5ea6841571dc5bfc6870753"
+    },
+    "heltec": {
+      "result": "PASS",
+      "hardware_input": "Heltec PRG",
+      "native_wasm_pixel_comparisons": 2257,
+      "functional_groups": 55,
+      "pin_value_exports": false,
+      "device_access": false,
+      "fixed_wasm_heap": 16777216,
+      "wasm_sha256": "9eda180df235a6ee3b29ebd8e478388148f8628e4a0cbb0888bab7359e74e685"
+    }
+  }
+}

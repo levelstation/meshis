@@ -1,5 +1,6 @@
 #include "Simulator.h"
 #include "TxProfile.h"
+#include "ScreenPin.h"
 #include <memory>
 #include <stdint.h>
 #ifdef __EMSCRIPTEN__
@@ -9,7 +10,7 @@
 #define API extern "C"
 #endif
 namespace {std::unique_ptr<Simulator> model;Simulator& sim(){if(!model)model=std::make_unique<Simulator>();return *model;}}
-API void sim_init(){model=std::make_unique<Simulator>();sim().seed();sim().render();}
+API void sim_init(){model.reset();model=std::make_unique<Simulator>();sim().seed();sim().render();}
 API void sim_step(uint32_t ms){sim().advance(ms);sim().render();}
 API void sim_key(int key){if(key>=0&&key<=255)sim().key(static_cast<uint8_t>(key));sim().render();}
 API void sim_event(int event){if(event>=0&&event<=(Simulator::liveRadio()?Simulator::DemoCollision:Simulator::NoiseUnknown))sim().event(static_cast<Simulator::Event>(event));}
@@ -69,3 +70,8 @@ API int sim_discovery_active(){return sim().discoveryActive();}
 API int sim_discovery_requests(){return static_cast<int>(sim().discoveryRequests());}
 API int sim_discovery_replies(){return static_cast<int>(sim().discoveryReplies());}
 API const char* sim_discovery_status(){return sim().discoveryStatus();}
+
+// Read-only presentation state; codes, salt and verifiers never cross this bridge.
+API int sim_pin_enabled(){return meshis::screenPin().enabled();}
+API int sim_pin_entry(){return meshis::screenPin().entryActive();}
+API int sim_pin_stage(){return static_cast<int>(meshis::screenPin().stage());}

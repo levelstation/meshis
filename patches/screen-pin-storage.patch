@@ -1,0 +1,183 @@
+--- a/examples/companion_radio/NodePrefs.h
++++ b/examples/companion_radio/NodePrefs.h
+@@ -3,6 +3,9 @@
+ #include <helpers/ConfigSerializer.h>
+ #include <helpers/CommonRadioPrefs.h>
+ #include <helpers/DynamicConfigSerializer.h>
++#if defined(MESHIS_V2)
++#include "ui-new/ScreenPin.h"
++#endif
+ 
+ #define TELEM_MODE_DENY            0
+ #define TELEM_MODE_ALLOW_FLAGS     1     // use contact.flags
+@@ -50,6 +53,10 @@
+   int8_t tz_offset = 0;
+   uint8_t meshis_timezone = 1;
+   uint8_t meshis_animations = 1;
++#if defined(MESHIS_V2)
++  // Local screen lock only; separate from BLE PIN and all radio/channel keys.
++  meshis::PinRecord meshis_screen_pin;
++#endif
+ #if defined(MESHIS_BOARD)
+   uint8_t meshis_pet = MESHIS_DEFAULT_PET;
+ #endif
+@@ -173,6 +180,11 @@
+       def("tz_offset", _parent->tz_offset);
+       def("mg_tz", _parent->meshis_timezone);
+       def("mg_anim", _parent->meshis_animations);
++#if defined(MESHIS_V2)
++      def("ui_pinv", _parent->meshis_screen_pin.version);
++      def("ui_pins8", static_cast<void*>(_parent->meshis_screen_pin.salt), sizeof(_parent->meshis_screen_pin.salt));
++      def("ui_pinh16", static_cast<void*>(_parent->meshis_screen_pin.digest), sizeof(_parent->meshis_screen_pin.digest));
++#endif
+ #if defined(MESHIS_BOARD)
+       def("mg_pet", _parent->meshis_pet);
+ #endif
+@@ -225,6 +237,14 @@
+     default_scope_name[0] = 0;
+     memset(default_scope_key, 0, sizeof(default_scope_key));
+   }
++#if defined(MESHIS_V2)
++  bool loadSerial(Stream& input) {
++    const bool nonempty=input.available()>0;
++    const bool success=ConfigSerializer::loadSerial(input);
++    if(!nonempty || !success)meshis_screen_pin.version=255;
++    return nonempty && success;
++  }
++#endif
+   // new accessor methods
+   bool isRepeatEn() const { return repeat.disable_fwd == 0; }
+   void setRepeatEn(bool en) { repeat.disable_fwd = en ? 0 : 1; }
+--- a/examples/companion_radio/DataStore.h
++++ b/examples/companion_radio/DataStore.h
+@@ -35,6 +35,9 @@
+   bool saveMainIdentity(const mesh::LocalIdentity &identity);
+   void loadPrefs(NodePrefs& prefs);
+   bool savePrefs(NodePrefs& prefs);
++#if defined(MESHIS_V2)
++  bool saveScreenPinPrefs(NodePrefs& prefs);
++#endif
+   void loadContacts(DataStoreHost* host);
+   void saveContacts(DataStoreHost* host, bool (*filter)(const ContactInfo& c) = NULL);
+   void loadChannels(DataStoreHost* host);
+--- a/examples/companion_radio/DataStore.cpp
++++ b/examples/companion_radio/DataStore.cpp
+@@ -190,11 +190,20 @@
+ }
+ 
+ void DataStore::loadPrefs(NodePrefs& prefs) {
+-  if (_fs->exists("/prefs.json")) {
+-    File file = openRead(_fs, "/prefs.json");
++  const char* prefsPath="/prefs.json";
++#if defined(MESHIS_V2)
++  // Recover the old PIN after a power interruption in the SPIFFS rename gap.
++  if(!_fs->exists(prefsPath) && _fs->exists("/screen_pin.bak"))prefsPath="/screen_pin.bak";
++#endif
++  if (_fs->exists(prefsPath)) {
++    File file = openRead(_fs, prefsPath);
+     if (file) {
+-      prefs.loadSerial(file);   // new Serial prefs
++      prefs.loadSerial(file);   // new Serial prefs; malformed files fail closed.
+       file.close();
++#if defined(MESHIS_V2)
++    } else {
++      prefs.meshis_screen_pin.version=255;
++#endif
+     }
+   } else if (_fs->exists("/new_prefs")) {
+     loadPrefsInt("/new_prefs", prefs);
+@@ -256,6 +265,76 @@
+   return false;
+ }
+ 
++#if defined(MESHIS_V2)
++namespace {
++class ScreenPinWriteStream : public Stream {
++  File& file_;
++public:
++  meshis::pin_detail::Sha256 hash;
++  size_t count=0;
++  bool good=true;
++  explicit ScreenPinWriteStream(File& file):file_(file){}
++  size_t write(uint8_t value) override { return write(&value,1); }
++  size_t write(const uint8_t* data,size_t length) override {
++    const size_t actual=file_.write(data,length);good=good && actual==length;
++    hash.update(data,length);count+=length;return actual;
++  }
++  int available() override {return 0;}
++  int read() override {return -1;}
++  int peek() override {return -1;}
++  void flush() override {file_.flush();}
++};
++}
++
++bool DataStore::saveScreenPinPrefs(NodePrefs& prefs) {
++  // Only the owned temporary/backup files participate. Existing prefs are not
++  // truncated before a complete write, close and read-back verification.
++  const char* temp="/screen_pin.tmp";
++  const char* backup="/screen_pin.bak";
++  const char* primary="/prefs.json";
++  File output=openWrite(_fs,temp);
++  if(!output)return false;
++  ScreenPinWriteStream checked(output);
++  const bool serialized=prefs.saveSerial(checked);
++  checked.flush();output.close();
++  uint8_t expected[32];checked.hash.finish(expected);
++  bool verified=serialized && checked.good;
++  File input=openRead(_fs,temp);
++  if(!input)verified=false;
++  if(input){
++    meshis::pin_detail::Sha256 hash;size_t count=0;
++    while(input.available()){
++      const int value=input.read();if(value<0){verified=false;break;}
++      const uint8_t byte=uint8_t(value);hash.update(&byte,1);++count;
++    }
++    uint8_t actual[32];hash.finish(actual);input.close();
++    verified=verified && count==checked.count && meshis::pin_detail::equal(actual,expected,32);
++    meshis::pin_detail::wipe(actual,sizeof(actual));
++  }
++  meshis::pin_detail::wipe(expected,sizeof(expected));
++  if(verified){
++    File parsed=openRead(_fs,temp);
++    NodePrefs roundtrip;
++    verified=parsed && roundtrip.loadSerial(parsed);
++    if(parsed)parsed.close();
++    verified=verified && memcmp(&roundtrip.meshis_screen_pin,&prefs.meshis_screen_pin,sizeof(meshis::PinRecord))==0;
++    meshis::pin_detail::wipe(&roundtrip.meshis_screen_pin,sizeof(meshis::PinRecord));
++  }
++  if(!verified){_fs->remove(temp);return false;}
++  // LittleFS supports atomic replacement. SPIFFS can reject an existing target;
++  // its fallback keeps an owned old copy which loadPrefs also understands.
++  if(_fs->rename(temp,primary)){_fs->remove(backup);return true;}
++  if(!_fs->exists(primary)){_fs->remove(temp);return false;}
++  if(_fs->exists(backup) && !_fs->remove(backup)){_fs->remove(temp);return false;}
++  if(!_fs->rename(primary,backup)){_fs->remove(temp);return false;}
++  if(!_fs->rename(temp,primary)){
++    _fs->rename(backup,primary); // If restoration fails, startup reads backup.
++    _fs->remove(temp);return false;
++  }
++  _fs->remove(backup);return true;
++}
++#endif
++
+ void DataStore::loadContacts(DataStoreHost* host) {
+ File file = openRead(_getContactsChannelsFS(), "/contacts3");
+     if (file) {
+--- a/examples/companion_radio/MyMesh.h
++++ b/examples/companion_radio/MyMesh.h
+@@ -218,6 +218,15 @@
+     _store->savePrefs(_prefs);
+     _prefs.clearDirty();
+   }
++#if defined(MESHIS_V2)
++  bool saveScreenPinPrefs() {
++    _prefs.node_lat = sensors.node_lat;
++    _prefs.node_lon = sensors.node_lon;
++    const bool saved=_store->saveScreenPinPrefs(_prefs);
++    if(saved)_prefs.clearDirty();
++    return saved;
++  }
++#endif
+ 
+ #if ENV_INCLUDE_GPS == 1
+   void applyGpsPrefs() {

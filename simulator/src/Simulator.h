@@ -5,11 +5,14 @@
 #include <vector>
 class Simulator {
   struct Impl;std::unique_ptr<Impl> impl_;
+  void commitScreenPinChange();
 public:
   enum Event { Idle,Rx,Tx,Message,BleConnected,BleDisconnected,LowBattery,Charging,RadioError,Quiet,Reset,GpsMoving,GpsStationary,GpsStale,GpsNoFix,BotPartOne,BotPartTwo,MissingPublic,RestoreChannels,TxFail,TxOk,NoiseQuiet,NoiseBusy,NoiseUnknown,DemoRepeaters,DemoDirect,DemoForwarded,DemoCollision };
   Simulator();~Simulator();
   void advance(uint32_t ms);void key(uint8_t value);void event(Event);
   void render();const uint8_t* buffer()const;
+  void setSimPinSaveFailure(bool fail);
+  std::vector<uint8_t> screenPinRecord()const;void restoreScreenPinRecord(const uint8_t* bytes,size_t size);
   void setUtc(uint32_t utc);uint32_t utc()const;int64_t local()const;
   void setLuxembourg(bool value);bool luxembourg()const;
   void setAnimations(bool value);bool animations()const;

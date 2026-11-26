@@ -3,6 +3,7 @@
 #include "FramebufferDisplay.h"
 #include "MeshiSprites.h"
 #include "LockRenderer.h"
+#include "ScreenPinRenderer.h"
 #include "MenuActions.h"
 #include "PrgInput.h"
 #include "RuntimeTelemetry.h"
@@ -32,10 +33,10 @@ Simulator::Simulator(){
 #if defined(MESHIS_V2)
   meshis::keyLock()={};quickTx={};meshis::runtimeTelemetry()={};meshis::activeDiscovery()={};sensors=SensorManager{};
 #endif
-  impl_=std::make_unique<Impl>();render();
+  impl_=std::make_unique<Impl>();meshis::screenPin().bind(&impl_->prefs.meshis_screen_pin);meshis::keyLock().restorePinLock(simMillis);render();
 
 }
-Simulator::~Simulator()=default;
+Simulator::~Simulator(){meshis::screenPin().bind(nullptr);}
 void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clock.set(rtc_clock.getCurrentTime()+impl_->fractional/1000);impl_->fractional%=1000;
 #if defined(MESHIS_V2)
   auto& lock=meshis::keyLock();
@@ -53,6 +54,8 @@ void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clo
   if(impl_->menuDebounce.sample(impl_->menuDown,simMillis))lock.menuPress(simMillis);lock.poll(simMillis);
   meshis::dispatchMenuAction(lock,impl_->task,[&](){impl_->current->handleInput(KEY_CANCEL);});
 #endif
+  lock.poll(simMillis);
+  commitScreenPinChange();
   quickTx.poll(messageMesh,simMillis);if(!lock.overlay())impl_->current->poll();
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
   MeshCoreDiscovery discoveryAdapter;
@@ -70,12 +73,13 @@ void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clo
 
 void Simulator::key(uint8_t key){
 #if defined(MESHIS_V2)
-  key=meshis::keyLock().route(key,simMillis);if(!key){render();return;}
+  key=meshis::keyLock().route(key,simMillis);commitScreenPinChange();if(!key){render();return;}
 #endif
   impl_->current->handleInput(static_cast<char>(key));if(impl_->task.goHome){showHome();impl_->task.goHome=false;}render();}
 void Simulator::render(){auto& d=impl_->display;d.startFrame();
 #if defined(MESHIS_V2)
-  if(meshis::keyLock().overlay()){
+  if(meshis::screenPin().entryActive())meshis::renderScreenPin(d,meshis::screenPin(),simMillis);
+  else if(meshis::keyLock().overlay()){
 #if defined(MESHIS_BOARD)
     meshis::renderLock(d,meshis::keyLock(),meshi(),simMillis);
 #else
@@ -85,7 +89,7 @@ void Simulator::render(){auto& d=impl_->display;d.startFrame();
   else
 #endif
   impl_->current->render(d);
-  if(!locked() && (!cleanBrandMode() || strncmp(impl_->task.alert,"SOUND ",6)==0) && simMillis<impl_->task.alertExpiry){d.setColor(0);d.fillRect(2,21,124,21);d.setColor(1);d.drawRect(2,21,124,21);d.drawTextCentered(64,27,impl_->task.alert);}d.endFrame();}
+  if(!locked() && (!cleanBrandMode() || strncmp(impl_->task.alert,"SOUND ",6)==0 || strncmp(impl_->task.alert,"PIN ",4)==0) && simMillis<impl_->task.alertExpiry){d.setColor(0);d.fillRect(2,21,124,21);d.setColor(1);d.drawRect(2,21,124,21);d.drawTextCentered(64,27,impl_->task.alert);}d.endFrame();}
 const uint8_t* Simulator::buffer()const{return impl_->display.framebuffer();}
 void Simulator::setUtc(uint32_t v){rtc_clock.set(v);impl_->fractional=0;render();}uint32_t Simulator::utc()const{return rtc_clock.getCurrentTime();}
 int64_t Simulator::local()const{return meshis::localTime(utc(),luxembourg());}
@@ -176,6 +180,7 @@ void Simulator::event(Event e){
 }
 
 void Simulator::resetPreservingSettings(){
+  commitScreenPinChange();
   const NodePrefs saved=impl_->prefs;const uint32_t clock=utc();const bool savedSound=soundEnabled();
   simMillis=0;board=Board{};radio_driver=Radio{};radio_driver.rx=radio_driver.tx=radio_driver.errors=0;
   the_mesh=Mesh{};sensors=SensorManager{};messages={};messageMesh={};nux.reset(0);
@@ -184,6 +189,7 @@ void Simulator::resetPreservingSettings(){
 #endif
   nuxBatteryMv=board.battery;chargeStatus=meshis::ChargeStatus::NotCharging;nuxLastFrame=0;
   impl_=std::make_unique<Impl>();impl_->prefs=saved;impl_->task.quiet=!savedSound;rtc_clock.set(clock);
+  meshis::screenPin().bind(&impl_->prefs.meshis_screen_pin);meshis::keyLock().restorePinLock(simMillis);
   impl_->current=&impl_->splash;
   render();
 }
@@ -325,4 +331,21 @@ bool Simulator::injectDiscoveryReply(uint32_t overrideTag,bool wrongRoute,bool u
  meshis::runtimeTelemetry().notePacket(&handle,hash,8,-79,simMillis);
  const bool accepted=meshis::acceptDiscoveryReply(payload,sizeof(payload),!wrongRoute,selfKey,unknownName?nullptr:"DEMO DIREKT REPEATER NORD",&handle,hash,8,simMillis);
  if(accepted){++radio_driver.rx;++impl_->discoveryResponses;}return accepted;
+}
+
+std::vector<uint8_t> Simulator::screenPinRecord()const{
+ const auto& p=impl_->prefs.meshis_screen_pin;std::vector<uint8_t> bytes;bytes.push_back(p.version);
+ bytes.insert(bytes.end(),p.salt,p.salt+8);bytes.insert(bytes.end(),p.digest,p.digest+16);return bytes;
+}
+void Simulator::restoreScreenPinRecord(const uint8_t* bytes,size_t size){
+ auto& p=impl_->prefs.meshis_screen_pin;
+ if(!bytes || size!=25){p=meshis::PinRecord{};p.version=255;}else {p.version=bytes[0];memcpy(p.salt,bytes+1,8);memcpy(p.digest,bytes+9,16);}
+ meshis::screenPin().bind(&p);meshis::keyLock().restorePinLock(simMillis);render();
+}
+
+void Simulator::setSimPinSaveFailure(bool fail){the_mesh.pinSaveFail=fail;}
+void Simulator::commitScreenPinChange(){
+ if(!meshis::screenPin().takeChanged())return;
+ const bool saved=the_mesh.saveScreenPinPrefs();meshis::screenPin().resolveSave(saved);
+ impl_->task.showAlert(saved?(meshis::screenPin().enabled()?"PIN gespeichert":"PIN entfernt"):"PIN Speicherfehler",1200);
 }

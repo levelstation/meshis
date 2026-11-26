@@ -5,6 +5,7 @@
 #if defined(MESHIS_V2)
 #include "QuickTx.h"
 #include "GpsCourse.h"
+#include "ScreenPinRenderer.h"
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
 #include "RuntimeTelemetry.h"
 #include "ActiveDiscovery.h"
@@ -110,7 +111,7 @@ class HomeScreen : public UIScreen {
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
     NOISE, REPEATERS,
 #endif
-    SOUND,
+    SOUND, SCREEN_LOCK,
 #if ENV_INCLUDE_GPS == 1
     COURSE,
 #endif
@@ -154,6 +155,9 @@ class HomeScreen : public UIScreen {
 #if defined(BRAND_CLASSIC_UI)
   bool _classic_menu=false;
   uint8_t _classic_selection=0;
+#if defined(MESHIS_V2)
+  uint8_t _pin_setting=0;
+#endif
   static HomePage menuPage(unsigned index) {
     static const HomePage order[]={
 #if defined(MESHIS_V2)
@@ -185,7 +189,7 @@ class HomeScreen : public UIScreen {
 #endif
       DIAGNOSTICS,TIMEZONE,
 #if defined(MESHIS_V2)
-      SOUND,
+      SOUND, SCREEN_LOCK,
 #endif
 #ifndef UI_NO_HIBERNATE
       SHUTDOWN,
@@ -313,7 +317,7 @@ public:
       case ANIMATIONS:return "Animations";
 #endif
 #if defined(MESHIS_V2)
-      case LIVE:return "Live Radio / GPS";case SOUND:return "Sound";
+      case LIVE:return "Live Radio / GPS";case SOUND:return "Sound";case SCREEN_LOCK:return "Bildschirmsperre";
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
       case NOISE:return "Pegel / Rauschen";case REPEATERS:return "Repeater live";
 #endif
@@ -393,6 +397,18 @@ public:
 
   int render(DisplayDriver& display) override {
     nuxLastFrame=millis();
+#if defined(MESHIS_V2)
+    if(meshis::screenPin().entryActive())return meshis::renderScreenPin(display,meshis::screenPin(),millis());
+    if(!_classic_menu && _page==HomePage::SCREEN_LOCK){
+      display.setColor(1);display.setTextSize(1);
+      display.drawTextEllipsized(0,0,128,"Bildschirmsperre");display.fillRect(0,11,128,1);
+      display.drawTextEllipsized(0,17,128,meshis::screenPin().enabled()?"PIN: EIN (4 Ziffern)":"PIN: AUS");
+      char option[26];snprintf(option,sizeof(option),"%c PIN %s",_pin_setting==0?'>':' ',meshis::screenPin().enabled()?"aendern":"erstellen");
+      display.drawTextEllipsized(0,30,128,option);
+      snprintf(option,sizeof(option),"%c PIN entfernen",_pin_setting==1?'>':' ');display.drawTextEllipsized(0,41,128,option);
+      display.drawTextEllipsized(0,56,128,meshis::inputHint("Auf/Ab  ENTER: OK","Kurz:wahl Halt:OK"));return 500;
+    }
+#endif
 #if defined(BRAND_CLASSIC_UI)
     if(_classic_menu){
       display.setColor(UIColor::primary_txt);display.setTextSize(1);
@@ -816,6 +832,17 @@ display.drawTextEllipsized(0,42,128,meshis::inputHint("Enter: umschalten","PRG h
 
   bool handleInput(char c) override {
     const uint8_t key=static_cast<uint8_t>(c);
+#if defined(MESHIS_V2)
+    if(meshis::screenPin().entryActive()){meshis::screenPin().input(key,millis());return true;}
+    if(!_classic_menu && _page==HomePage::SCREEN_LOCK){
+      if(key==KEY_UP || key==KEY_DOWN || key==KEY_NEXT || key==KEY_PREV || key==KEY_LEFT || key==KEY_RIGHT){_pin_setting^=1;return true;}
+      if(key==KEY_ENTER || key==KEY_SELECT){
+        if(_pin_setting==0){uint8_t entropy[8];the_mesh.getRNG()->random(entropy,sizeof(entropy));meshis::screenPin().setEntropy(entropy);if(!meshis::screenPin().startSet(millis()))_task->showAlert("PIN nicht bereit",900);}
+        else if(!meshis::screenPin().startRemove(millis()))_task->showAlert("Keine PIN gesetzt",900);
+        return true;
+      }
+    }
+#endif
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
     if(!_classic_menu && _page==HomePage::REPEATERS){
       if(key==KEY_ENTER){_repeater_list=!_repeater_list;if(_repeater_list)meshis::activeDiscovery().start(millis());else meshis::activeDiscovery().stop();return true;}
