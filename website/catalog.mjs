@@ -4,21 +4,25 @@ import {resolve,join,relative} from 'node:path';
 import {createHash} from 'node:crypto';
 const docs=resolve(process.argv[2]||(existsSync('assets/data/download-catalog.json')?'assets':'docs')),project=process.argv[3]||'meshis';
 if(!['meshis','lu-alert'].includes(project))throw Error('Choose an existing firmware project');
-const title=project==='lu-alert'?'LU-Alert':'Meshis',rc=project==='lu-alert'?'RC6':'RC7',prefix=`/downloads/pin/${title}`;
+const title=project==='lu-alert'?'LU-Alert':'Meshis',rc=project==='lu-alert'?'RC7':'RC8',prefix=`/downloads/text-scroll/${title}`,heltecPrefix=`/downloads/pin/${title}`;
 let previous={};try{const old=JSON.parse(await readFile(join(docs,'data/download-catalog.json'),'utf8'));previous=Object.fromEntries([...old.releases,...old.legacy].map(item=>[item.path,item]));}catch(error){if(error.code!=='ENOENT')throw error;}
 const current=[
- {id:`wio-${rc.toLowerCase()}-dfu`,board:'wio',kind:'firmware',version:rc,format:'DFU ZIP',path:`${prefix}-Wio-PIN-${rc}-DFU.zip`},
- {id:`wio-${rc.toLowerCase()}-bin`,board:'wio',kind:'firmware',version:rc,format:'BIN',path:`${prefix}-Wio-PIN-${rc}.bin`},
- {id:`wio-${rc.toLowerCase()}-uf2`,board:'wio',kind:'firmware',version:rc,format:'UF2',path:`${prefix}-Wio-PIN-${rc}.uf2`},
- {id:`wio-${rc.toLowerCase()}-macos`,board:'wio',kind:'simulator',version:rc,format:'macOS ZIP',path:`${prefix}-Wio-PIN-${rc}-macOS-arm64.zip`},
- {id:'heltec-dev4-r2-bin',board:'heltec',kind:'firmware',version:'dev4 · R2',format:'BIN',path:`${prefix}-Heltec-PIN-dev4-R2.bin`},
- {id:'heltec-dev4-r8-bin',board:'heltec',kind:'firmware',version:'dev4 · R8',format:'BIN',path:`${prefix}-Heltec-PIN-dev4-R8.bin`},
- {id:'heltec-dev4-macos',board:'heltec',kind:'simulator',version:'dev4',format:'macOS ZIP',path:`${prefix}-Heltec-PIN-dev4-macOS-arm64.zip`},
- {id:'source-pin',board:'source',kind:'source',version:rc+' / dev4',format:'Source ZIP',path:`${prefix}-PIN-Source.zip`},
+ {id:`wio-${rc.toLowerCase()}-dfu`,board:'wio',kind:'firmware',version:rc,format:'DFU ZIP',path:`${prefix}-Wio-Laufschrift-${rc}-DFU.zip`},
+ {id:`wio-${rc.toLowerCase()}-bin`,board:'wio',kind:'firmware',version:rc,format:'BIN',path:`${prefix}-Wio-Laufschrift-${rc}.bin`},
+ {id:`wio-${rc.toLowerCase()}-uf2`,board:'wio',kind:'firmware',version:rc,format:'UF2',path:`${prefix}-Wio-Laufschrift-${rc}.uf2`},
+ {id:`wio-${rc.toLowerCase()}-macos`,board:'wio',kind:'simulator',version:rc,format:'macOS ZIP',path:`${prefix}-Wio-Laufschrift-${rc}-macOS-arm64.zip`},
+ {id:'heltec-dev4-r2-bin',board:'heltec',kind:'firmware',version:'dev4 · R2',format:'BIN',path:`${heltecPrefix}-Heltec-PIN-dev4-R2.bin`},
+ {id:'heltec-dev4-r8-bin',board:'heltec',kind:'firmware',version:'dev4 · R8',format:'BIN',path:`${heltecPrefix}-Heltec-PIN-dev4-R8.bin`},
+ {id:'heltec-dev4-macos',board:'heltec',kind:'simulator',version:'dev4',format:'macOS ZIP',path:`${heltecPrefix}-Heltec-PIN-dev4-macOS-arm64.zip`},
+ {id:'source-wio-scroll',board:'source',kind:'source',version:rc,format:'Source ZIP',path:`${prefix}-Wio-Laufschrift-Source.zip`},
 ];
 const digest=data=>createHash('sha256').update(data).digest('hex');
 async function metadata(item,current){const data=await readFile(join(docs,item.path));return {...item,title:`${title} ${item.board==='wio'?'Wio':item.board==='heltec'?'Heltec':'Quellcode'}`,bytes:data.length,sha256:digest(data),url:'/get/'+item.id,current,preview:true};}
-const releases=[];for(const item of current)releases.push(await metadata(item,true));
+const releases=[];for(const item of current){
+ const updated=await metadata(item,true),old=previous[item.path];
+ if(old){if(old.sha256!==updated.sha256||old.bytes!==updated.bytes)throw Error('An existing release changed: '+item.path);if(old.id!==item.id)throw Error('An existing release identity changed: '+item.path);releases.push({...old,current:true});}
+ else releases.push(updated);
+}
 const paths=[];async function walk(dir){for(const entry of await readdir(dir,{withFileTypes:true})){const path=join(dir,entry.name);if(entry.isDirectory())await walk(path);else if(/\.(zip|bin|uf2)$/i.test(entry.name))paths.push('/'+relative(docs,path).split('\\').join('/'));}}await walk(join(docs,'downloads'));
 const legacy=[];
 for(const path of paths.sort()){

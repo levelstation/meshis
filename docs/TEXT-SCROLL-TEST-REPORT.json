@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-26",
+  "result": "PASS",
+  "application": "Meshis",
+  "wio_version": "RC8",
+  "hardware_flashed": false,
+  "physical_scroll_hardware_test": "PENDING",
+  "native": {
+    "result": "PASS",
+    "application": "Meshis",
+    "scope": "Wio text movement",
+    "assertions": 132,
+    "pixel_snapshots": 13,
+    "framebuffer_bytes": 1024,
+    "hardware_flashed": false
+  },
+  "sanitizer": {
+    "result": "PASS",
+    "application": "Meshis",
+    "scope": "Wio text movement",
+    "assertions": 132,
+    "pixel_snapshots": 13,
+    "framebuffer_bytes": 1024,
+    "hardware_flashed": false
+  },
+  "firmware": {
+    "result": "PASS",
+    "hardware_flashed": false,
+    "files": {
+      "DFU-VALIDATION.json": "35ff8abd0a8e3361d7c08005e01891538a313b3e9c764c724790bcd461731a98",
+      "MEMORY-LAYOUT.json": "7fb0d6fc437581fd2b7def9da84561a6d3d3048e493513923660c83dd4286b49",
+      "Meshis-2-Wio-L1-Pro-DFU.zip": "5babe706b9f9705c97f848dcf73ea17515e92ec758d3fcccbafa6a19a40c6b90",
+      "Meshis-2-Wio-L1-Pro.bin": "d660b2910b581062be52bcc9b6bef9cd4d2f2ded679b67f388f8f8e9d0ed7c1e",
+      "Meshis-2-Wio-L1-Pro.uf2": "93ab31373e428c9d1f7b495aa57c7b0900fec4d2e471ad0a596d8234ba07cf30",
+      "SHA256SUMS": "aeb5a481352d4d9dbcbb945f956d2d854077b55a311fc4c4f76c4a4cfe8db45a"
+    }
+  },
+  "heltec": "Existing dev4 preview unchanged",
+  "browser": {
+    "result": "PASS",
+    "scope": "Wio text scrolling",
+    "native_wasm_framebuffer_comparisons": 72,
+    "functional_groups": 60,
+    "demos": [
+      "message",
+      "incoming preview",
+      "repeater name",
+      "contact name"
+    ],
+    "framebuffer_bytes": 1024,
+    "read_durations_ms": [
+      49000,
+      37300,
+      7250,
+      6400
+    ],
+    "device_access": false,
+    "hardware_flashed": false,
+    "wasm_sha256": "6226ca253e4eff03f74832834659360a917605b8e18c95b2a037a07c7eecdb88"
+  }
+}

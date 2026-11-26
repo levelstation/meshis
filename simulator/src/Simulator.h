@@ -17,6 +17,8 @@ public:
   void setLuxembourg(bool value);bool luxembourg()const;
   void setAnimations(bool value);bool animations()const;
   void showHome();void showSplash();void showPreview();void goToPage(int index);
+  void showTextScrollDemo(int view);
+  void showReceivedPreview(const char* sender,const char* text);void setSimRecentName(const char* name);void setSimContactName(unsigned index,const char* name);void setSimNodeName(const char* name);
   int pageIndex()const;static int pageCount();static const char* pageName(int index);
   const char* state()const;std::string status()const;unsigned simulatedSends()const;
   void seed();

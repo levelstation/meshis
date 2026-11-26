@@ -90,11 +90,12 @@ struct Radio {
 static Board board;static Radio radio_driver;static SensorManager sensors;static mesh::RTCClock rtc_clock;
 struct Mesh {
   unsigned sends=0,discoverySends=0;mesh::RNG rng;mesh::Packet packet;uint32_t discoveryWord=0xDE000001;
+  char recentName[32]="DEMO NODE B";
   bool pinSaveFail=false;
   uint32_t getBLEPin()const{return 0;}void savePrefs(){}bool saveScreenPinPrefs(){return !pinSaveFail;}bool advert(){++sends;return true;}
   mesh::RNG* getRNG(){return &rng;}mesh::Packet* createControlData(const uint8_t* bytes,int len){packet.payload_len=len;memcpy(packet.payload,bytes,len);return &packet;}
   void sendZeroHop(mesh::Packet*){++sends;}ContactInfo* lookupContactByPubKey(const uint8_t*,int){static ContactInfo c;return &c;}
-  int getRecentlyHeard(AdvertPath* out,int n){for(int i=0;i<n;++i)out[i]=AdvertPath{};if(n){snprintf(out[0].name,32,"DEMO NODE B");out[0].recv_timestamp=rtc_clock.getCurrentTime()-42;}return 1;}
+  int getRecentlyHeard(AdvertPath* out,int n){for(int i=0;i<n;++i)out[i]=AdvertPath{};if(n){snprintf(out[0].name,32,"%s",recentName);out[0].recv_timestamp=rtc_clock.getCurrentTime()-42;}return 1;}
 };
 static Mesh the_mesh;
 struct MeshCoreDiscovery {
@@ -115,13 +116,13 @@ struct MeshCoreDiscovery {
 // Same public adapter contract as MeshCoreMessages; no radio or private keys.
 struct MeshCoreMessages {
 #if defined(MESHIS_V2)
-  char names[8][32]={};
+  char names[8][32]={};char contactNames[2][32]={"DEMO NODE A","DEMO NODE B"};
   MeshCoreMessages(){for(unsigned i=0;i<meshis::txChannelCount();++i)snprintf(names[i],32,"%s",meshis::txChannel(i));}
   char prepared[32]={},lastText[193]={},lastChannel[32]={};int selected=-1;bool fail=false;
   unsigned channelCount()const{return meshis::txChannelCount();}unsigned contactCount()const{return 2;}
   bool prepareNamed(const char* name){selected=-1;unsigned matches=0;for(unsigned i=0;i<meshis::txChannelCount();++i)if(meshis::sameChannel(name,names[i])){selected=i;++matches;}if(matches!=1){selected=-1;return false;}snprintf(prepared,sizeof(prepared),"%s",names[selected]);return true;}
   bool prepareChannel(unsigned n){return n<meshis::txChannelCount() && prepareNamed(names[n]);}
-  void itemName(bool channel,unsigned n,char* out,size_t cap)const{snprintf(out,cap,"%s",channel?(n<meshis::txChannelCount()?names[n]:""):(n?"DEMO NODE B":"DEMO NODE A"));}
+  void itemName(bool channel,unsigned n,char* out,size_t cap)const{snprintf(out,cap,"%s",channel?(n<meshis::txChannelCount()?names[n]:""):contactNames[n%2]);}
   void preparedName(char* out,size_t cap)const{snprintf(out,cap,"%s",prepared);}
   bool sendPreparedChannel(const char* text){if(meshis::keyLock().blocks() || fail || selected<0 || strcmp(prepared,names[selected]))return false;++the_mesh.sends;snprintf(lastText,sizeof(lastText),"%s",text);snprintf(lastChannel,sizeof(lastChannel),"%s",prepared);return true;}
 #else

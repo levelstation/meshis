@@ -1,0 +1,22 @@
+{
+  "result": "PASS",
+  "scope": "Wio text scrolling",
+  "native_wasm_framebuffer_comparisons": 72,
+  "functional_groups": 60,
+  "demos": [
+    "message",
+    "incoming preview",
+    "repeater name",
+    "contact name"
+  ],
+  "framebuffer_bytes": 1024,
+  "read_durations_ms": [
+    49000,
+    37300,
+    7250,
+    6400
+  ],
+  "device_access": false,
+  "hardware_flashed": false,
+  "wasm_sha256": "6226ca253e4eff03f74832834659360a917605b8e18c95b2a037a07c7eecdb88"
+}

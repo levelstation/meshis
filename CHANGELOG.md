@@ -1,5 +1,9 @@
 # Meshis Changelog
 
+## 26. November 2026 · Wio-Laufschrift
+
+v0.2.0-alpha-rc8: abgeschnittene Nachrichten, Absender, Kontakte, Menütexte und Repeater-Namen werden nach einer kurzen Lesepause nach links bewegt. Kurze Texte und benachbarte Messwerte bleiben stehen. Die Anzeige läuft ohne blockierende Wartezeiten und ohne zusätzliche Funkpakete; die vorhandene PIN-Sperre bleibt erhalten. Neue Wio-Firmware und Mac-App sowie aktualisierte Browser-Simulation mit langem Beispieltext. Heltec dev4 bleibt unverändert Vorschau. Keine Geräte geflasht; physische Tests der Laufschrift stehen aus.
+
 ## 26. November 2026 · Bildschirm-PIN
 
 v0.2.0-alpha-rc7 / Heltec dev4 (Vorschau): optionale vierstellige PIN im Menü erstellen, ändern und entfernen. Gemeinsamer C++-Code für Wio, Heltec und die Simulation; maskierte Eingabe, erneute Bestätigung, Wartezeit nach Fehlversuchen, Neustart-Sperre und überprüfte Speicherung mit Fehler-Rücknahme. Bestehende Tasten-, Empfangs- und Kanalprofile bleiben erhalten.

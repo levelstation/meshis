@@ -1,4 +1,5 @@
 {
+  "version": "v0.2.0-alpha-rc8",
   "format": "Shared C++ simulator compiled to WebAssembly",
   "compiler": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 7.0.1 (ac0578743420bcbe9a4f77d0b6599c25f8d43702)",
   "framebuffer_bytes": 1024,
@@ -9,38 +10,44 @@
   ],
   "device_access": false,
   "screen_pin": true,
+  "text_scroll": true,
+  "text_scroll_start_pause_ms": 1200,
+  "text_scroll_end_pause_ms": 1200,
+  "text_scroll_pixels_per_second": 20,
   "pin_persistence": "current browser session only",
   "live_radio": true,
   "hardware_tests": "UNTESTED for new Wio build",
   "files": {
-    "core.mjs": "f4cb2f71d0ba9966414b5ec12275c298b8232553e783f486f07f7aaad919c449",
-    "core.wasm": "015a0a0ae191bcf9b7bc73142b3d61699c36cd07f5ea6841571dc5bfc6870753"
+    "core.mjs": "bb15256d193775afec8dc5380fd57cc912a491ce6920bbef9f54becb3dc99b19",
+    "core.wasm": "6226ca253e4eff03f74832834659360a917605b8e18c95b2a037a07c7eecdb88"
   },
   "shared_sources": {
+    "firmware/core/TextMarquee.h": "183a1e6f39e9cfc49fbd03d6817a74beb221f30464707323894f24de368bc78f",
+    "firmware/core/TextReadSession.h": "e12ea91277acd0fcf02fc0b2fd10ea020f30aeb57d50e57765bd44eee0109711",
     "firmware/core/ScreenPin.h": "56482a38c9237e267bf68bc5c2f74259ffb6008ca99f6f63d834deabfb0acddb",
     "firmware/core/PrgInput.h": "5c4ef08927adf1f9f803cc0b2ae77af0b5bfe4b45ffe6a58dc06b16493b06114",
     "firmware/ui/ScreenPinRenderer.h": "10c1de33d37078d0f6ea7f9556c58a37373de1320f4c29e2c59481e032358f51",
-    "simulator/web/Bridge.cpp": "ca0ed7e18f2a0e41281733ddbc4f348aabc70582ef9320458becf52ad2dbc2fc",
+    "simulator/web/Bridge.cpp": "1f9f40b3eddb6df8fa46b92147e0b8706f5b97959d6bf8c2ddd724abd514f328",
     "firmware/ui/TxProfile.h": "bfa4101acbd1ad5b47197dc75e224ac63b08588b0ae9b0e764132a645265a576",
     "firmware/ui/MeshiSprites.h": "d16434fc9d62257c8e0b254b9b9768a0434b4fa1853e62818e5eca72bc904abb",
-    "simulator/src/Simulator.cpp": "ecde9dc3fd7bb6028da25b0b261966a21ebefc9072a8e927ef0a7d5e5f93d505",
-    "simulator/src/FirmwareAdapter.h": "cb699de413c5acb04e256bb8a7d6c2b8cd0aff94a456d0ac40a17fd855f7ad48",
-    "firmware/ui/FirmwareScreens.h": "27acfe36408cdc54115d5d53e3f483e065ed52df5c2bdab9d71edcbc8ff1d3e1",
-    "firmware/ui/QuickTx.h": "0118d65d4599b42ef7ca6e3bf94398ad840fd80833eaa1630ca2df3524026af0",
+    "simulator/src/Simulator.cpp": "45be6614e55765f1fe465aacd5175c2ee44e3b24b7577fbd23fed8459ecbbcf4",
+    "simulator/src/FirmwareAdapter.h": "54fc50f69cc469834df5eef1c5a76307845c399af036009c14b3555b855ec9bb",
+    "firmware/ui/FirmwareScreens.h": "da9e76ed5fca12011da5294f9481d63f1490d7fd1f7ec132919423e55658ada9",
+    "firmware/ui/QuickTx.h": "f04497c7dda37697dd41e27d958c8443eddca767533f242ca5494f03f0be13dc",
     "firmware/ui/MenuActions.h": "962e9fa6a4037136f7aa9b8af3917041a4de7c841379c32572c475e5552b480f",
-    "firmware/core/RuntimeTelemetry.h": "c3466d44d702b4d997e0a816ee15e4018797f1733e88ce3868c40cfb33227720",
+    "firmware/core/RuntimeTelemetry.h": "b12fd313b0351ef73a30cd2a383ea34eec527ab4da596b663547d25c07e2c10f",
     "firmware/core/ActiveDiscovery.h": "d66c907a7eed47ecc1c4083e656d2c134442a1c210e9966a7676863721081820",
     "firmware/core/DiscoveryReply.h": "6221697f40fcf00a3fd7b1d3cd3f8bf785f5f5cb332962bc256e12451f743821",
-    "firmware/ui/OledText.h": "5c0b83fb5aee1075fd4da2dbf47e1af528fad723814ff5207c18138e292d2053",
+    "firmware/ui/OledText.h": "11d187a5bcdbc79372d8247da133c4ebc0692b25c754685ae30837e5e29fd4c2",
     "firmware/core/KeyLock.h": "8e82cca6f3f342e6391cbc9b623c8cb198783b38d65ac45071e464c74b8e73de",
     "firmware/ui/LockRenderer.h": "07a0ee1bebadfff8bb079e5cc593e83c470b96ade394111a2c959b319996ee0d",
-    "firmware/display/FramebufferDisplay.h": "30904f4e0cfc9863451f071ca1520e57585ad88fe61f0cb9ab2c6e295b1622a9"
+    "firmware/display/FramebufferDisplay.h": "dfbbaed260e8daec23e7708e9883c04c487cae7da8a1d6cbe9dc26606c1bf960",
+    "simulator/src/Simulator.h": "464d097e1a3ce165713cc065ca7db6b652d822ed9516672477256e223e914380"
   },
   "hardware_boundary_sources": {
     "firmware/core/MeshCoreDiscovery.h": "3b31865fb6d277dfba9c6773d6ea624ee393c7dd998293237300e98ee98fbc5a",
     "firmware/core/DiscoveryQueueGuard.h": "dcb1ffce8a2e22d9218fc8665ce68f3bf47dcd93e462aba35c2f2430c6153259"
   },
-  "version": "v0.2.0-alpha-rc7",
   "pin_tests": {
     "result": "PASS",
     "hardware_input": "Wio joystick/MENU",
@@ -49,6 +56,35 @@
     "pin_value_exports": false,
     "device_access": false,
     "fixed_wasm_heap": 16777216,
-    "wasm_sha256": "015a0a0ae191bcf9b7bc73142b3d61699c36cd07f5ea6841571dc5bfc6870753"
-  }
+    "wasm_sha256": "6226ca253e4eff03f74832834659360a917605b8e18c95b2a037a07c7eecdb88"
+  },
+  "text_scroll_tests": {
+    "result": "PASS",
+    "scope": "Wio text scrolling",
+    "native_wasm_framebuffer_comparisons": 72,
+    "functional_groups": 60,
+    "demos": [
+      "message",
+      "incoming preview",
+      "repeater name",
+      "contact name"
+    ],
+    "framebuffer_bytes": 1024,
+    "read_durations_ms": [
+      49000,
+      37300,
+      7250,
+      6400
+    ],
+    "device_access": false,
+    "hardware_flashed": false,
+    "wasm_sha256": "6226ca253e4eff03f74832834659360a917605b8e18c95b2a037a07c7eecdb88"
+  },
+  "presentation_assets": {
+    "index.html": "f908916a276a70927a45cff10aa1d2434dcc37114f0a5c3396f3857d831e925f",
+    "simulator.mjs": "e547e9061ef71b76b21400ac301616acbc85d357a546ca0208a9325c280ac6b4",
+    "simulator.css": "b000b6038315637f382a0c90d6198a415db4775574356697764bb03a06b0dccb"
+  },
+  "demo_query": "?demo=scroll",
+  "heltec_assets": "unchanged from existing PIN dev4 preview"
 }

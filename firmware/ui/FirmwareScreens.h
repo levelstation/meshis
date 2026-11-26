@@ -417,7 +417,12 @@ public:
       const unsigned first=(_classic_selection/4)*4;
       for(unsigned row=0;row<4 && first+row<Count-1;++row){
         char line[32];snprintf(line,sizeof(line),"%c %s",first+row==_classic_selection?'>':' ',pageName(menuPage(first+row)));
+#if defined(MESHIS_V2) && !defined(MESHIS_HELTEC_PRG)
+        char marker[3]={line[0],' ',0};display.drawTextEllipsized(0,15+row*12,12,marker);
+        display.drawTextEllipsized(12,15+row*12,116,line+2);
+#else
         display.drawTextEllipsized(0,15+row*12,128,line);
+#endif
       }
       return 1000;
     }
@@ -1011,7 +1016,11 @@ display.drawTextEllipsized(0,42,128,meshis::inputHint("Enter: umschalten","PRG h
 };
 
 #ifndef UI_MSG_PREVIEW_SIZE
-  #define UI_MSG_PREVIEW_SIZE 78
+  #if defined(MESHIS_V2) && !defined(MESHIS_HELTEC_PRG)
+    #define UI_MSG_PREVIEW_SIZE 193
+  #else
+    #define UI_MSG_PREVIEW_SIZE 78
+  #endif
 #endif
 
 class MsgPreviewScreen : public UIScreen {

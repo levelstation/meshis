@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "OledText.h"
+#if defined(MESHIS_V2) && !defined(MESHIS_HELTEC_PRG)
+#include "TextMarquee.h"
+#include "TextReadSession.h"
+#endif
 #include "KeyLock.h"
 #include "TxProfile.h"
 namespace meshis {
@@ -65,6 +69,9 @@ public:
     if(awaiting_ && uint32_t(now-started_)<30000 && sameChannel(channel,preparedChannel_) && proof.authenticatedSender && proof.expectedSender && proof.requestCorrelation){
       rx.verifiedReply=true;awaiting_=false;page_=Page::Response;rxSelection_=0;scroll_=0;
     }
+#if defined(MESHIS_V2) && !defined(MESHIS_HELTEC_PRG)
+    if(page_==Page::Inbox || page_==Page::Response){textMarquee().reset();textReadSession().reset();}
+#endif
   }
   template<class Backend> void poll(Backend& mesh,uint32_t now){
     if(page_==Page::Requested){
@@ -140,7 +147,14 @@ public:
 #endif
       if(!rx){text(25,"No local messages");return;}
       snprintf(line,sizeof(line),"%s %u/%u",page_==Page::Response && rx->verifiedReply?"VERIFIED RESPONSE":"RX UNVERIFIED",rxSelection_+1,visibleCount());text(18,line);
-      text(27,rx->channel);for(unsigned row=0;row<2;++row)oledLine(d,0,36+row*8,wrappedLineStart(rx->text,scroll_+row));
+      text(27,rx->channel);
+#if !defined(MESHIS_HELTEC_PRG)
+      if(wrappedTextLines(rx->text)>2){
+        oledLine(d,0,36,wrappedLineStart(rx->text,scroll_));
+        oledLineFixed(d,0,46,"Auf/Ab: Text weiter");
+      }else
+#endif
+      for(unsigned row=0;row<2;++row)oledLineFixed(d,0,36+row*8,wrappedLineStart(rx->text,scroll_+row));
       if(rx->truncated)text(56,"TRUNCATED / RAM limit");else {snprintf(line,sizeof(line),"%u %s",scroll_+1,rx->sender);text(56,line);}return;
     }
   }

@@ -53,7 +53,7 @@ function enhanceDownloads() {
     document.querySelector('#current-releases').classList.add('filtered');
     const boardName = board === 'wio' ? 'Wio Tracker L1 Pro' : 'Heltec V4.3';
     const kindName = { firmware: 'Firmware', simulator: 'macOS-App', source: 'Quellcode' }[kind];
-    status.textContent = kind === 'source' ? 'Gemeinsamer Quellcode für Wio und Heltec · Stand 26.11.2026'
+    status.textContent = kind === 'source' ? 'Wio-Quellcode mit Laufschrift und PIN · Stand 26.11.2026'
       : `${kindName} für ${boardName} · ${visible === 0 ? 'Vorschau ohne Flash-Paket' : visible === 1 ? '1 Datei' : `${visible} Dateien`} · Stand 26.11.2026`;
     if (updateAddress) {
       const address = new URL(location.href);

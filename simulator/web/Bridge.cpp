@@ -1,6 +1,7 @@
 #include "Simulator.h"
 #include "TxProfile.h"
 #include "ScreenPin.h"
+#include "TextMarquee.h"
 #include <memory>
 #include <stdint.h>
 #ifdef __EMSCRIPTEN__
@@ -75,3 +76,9 @@ API const char* sim_discovery_status(){return sim().discoveryStatus();}
 API int sim_pin_enabled(){return meshis::screenPin().enabled();}
 API int sim_pin_entry(){return meshis::screenPin().entryActive();}
 API int sim_pin_stage(){return static_cast<int>(meshis::screenPin().stage());}
+
+// Fixed synthetic display examples only; no text/identifier inputs.
+API void sim_scroll_demo(int view){sim().showTextScrollDemo(view);}
+
+API int sim_scroll_active(){return !Simulator::heltecPrg()&&meshis::textMarquee().active();}
+API uint32_t sim_scroll_read_ms(){return Simulator::heltecPrg()?0:meshis::textMarquee().readDurationMs();}

@@ -1,6 +1,8 @@
 # Meshis – kleine Begleiter fürs Mesh.
 
-**Neu: vierstellige Bildschirm-PIN für Wio und Heltec.** Menü → Bildschirmsperre → PIN erstellen. Ändern/Entfernen mit bisherigem Code; Neustart erhält die Sperre. [Bedienung und Tests](docs/SCREEN-PIN.md). v0.2.0-alpha-rc7 / Heltec dev4; neue PIN-Hardwaretests ausstehend.
+**Neu: Laufschrift für den Wio Tracker L1 Pro.** Lange Nachrichten, Absender und Repeater-Namen laufen nach einer kurzen Lesepause nach links. Kurze Texte bleiben stehen. **v0.2.0-alpha-rc8**; die bestehende PIN-Sperre bleibt erhalten. [Im Browser ausprobieren](https://meshis.nosrv.eu/simulator/?demo=scroll) · [Neue Wio-Downloads](docs/downloads/text-scroll/) · [Bedienung](docs/TEXT-SCROLL.md). Heltec bleibt **dev4 · Vorschau** mit seiner bisherigen Darstellung.
+
+**Vierstellige Bildschirm-PIN für Wio und Heltec.** Menü → Bildschirmsperre → PIN erstellen. Ändern/Entfernen mit bisherigem Code; Neustart erhält die Sperre. [Bedienung und Tests](docs/SCREEN-PIN.md). Heltec dev4 bleibt Vorschau; neue PIN-Hardwaretests ausstehend.
 
 **Aktiver Zero-Hop-Scan: Wio RC6 / Heltec dev3 (Vorschau).** [Direkt ausprobieren](https://meshis.nosrv.eu/simulator/?demo=scan) · [Bedienung und Airtime](docs/DISCOVERY.md). Expliziter Start, mindestens 30–35 Sekunden, höchstens zwei Minuten; neue Hardwaretests UNTESTED.
 
@@ -19,11 +21,23 @@ Das sind normale Textnachrichten; eine automatische Bot-Antwort wird nicht zuges
 
 [Website](https://meshis.nosrv.eu) · [GitHub](https://github.com/levelstation/meshis) · [Testbericht](TEST-REPORT.md) · [Heltec-Roadmap](docs/ROADMAP.md)
 
+## Laufschrift auf dem Wio
+
+Überlange Textfelder werden vollständig lesbar: Der Anfang steht zunächst 1,2 Sekunden, dann läuft der Text nach links. Empfangsalter, Signalpegel und Symbole daneben behalten ihren Platz. Neue Nachrichten und eine andere Auswahl starten den Text wieder von vorn. Empfang und GPS laufen weiter; für die Anzeige entstehen keine zusätzlichen Funkpakete.
+
+[Nachrichten und lange Repeater-Namen ausprobieren](https://meshis.nosrv.eu/simulator/?demo=scroll) · [Firmware, Mac-Simulator und Quellpaket](docs/downloads/text-scroll/) · [Prüfsummen](docs/downloads/text-scroll/SHA256SUMS).
+
+![Wio: lange Nachricht im Simulator](docs/assets/wio-scroll-message.png)
+
+![Wio: langer Repeater-Name im Simulator](docs/assets/wio-scroll-repeater.png)
+
+Die neue Laufschrift wurde in Software und Browser-Simulation geprüft. Der physische Test dieser Funktion steht noch aus. Heltec behält die bestehende dev4-Vorschau; es wurde kein Gerät geflasht.
+
 ## Vierstellige Bildschirm-PIN
 
 Menü → **Bildschirmsperre** → **PIN erstellen**. Vier Ziffern wählen und wiederholen; zum Ändern oder Entfernen den bisherigen Code eingeben. Auf dem Wio werden Joystick und ENTER benutzt, auf dem Heltec kurze und längere PRG-Tastendrücke. Ein Neustart erhält die gespeicherte Sperre.
 
-[PIN-Downloads und Mac-Simulatoren](docs/downloads/pin/) · [Bedienung](docs/SCREEN-PIN.md) · [Softwareprüfungen](docs/SCREEN-PIN-TEST-REPORT.json). Wio: **v0.2.0-alpha-rc7**. Heltec: **dev4 · Vorschau**, R2/R8; physische Tests der neuen PIN-Funktion stehen aus. Vorherige Downloads bleiben erhalten.
+[PIN-Downloads und Mac-Simulatoren](docs/downloads/pin/) · [Bedienung](docs/SCREEN-PIN.md) · [Softwareprüfungen](docs/SCREEN-PIN-TEST-REPORT.json). Wio aktuell: **v0.2.0-alpha-rc8**, [Laufschrift-Downloads](docs/downloads/text-scroll/). Heltec: **dev4 · Vorschau**, R2/R8; physische Tests der neuen PIN-Funktion stehen aus. Vorherige Downloads bleiben erhalten.
 
 ## Technik und Grenzen
 

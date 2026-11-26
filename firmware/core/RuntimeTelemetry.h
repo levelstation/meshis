@@ -91,7 +91,7 @@ template<class D> void renderRepeaters(D& d,const RuntimeTelemetry& data,uint32_
  const auto node=count?data.repeater(selected%count,now):nullptr;
  if(!node){d.drawTextEllipsized(0,20,128,"Noch keine Adverts");d.drawTextEllipsized(0,32,128,"Empfang laeuft");}
  else {
-  const char* name=node->name[0]?node->name:"Name unbekannt";oledLine(d,0,13,name);oledLine(d,0,21,wrappedLineStart(name,1));
+  const char* name=node->name[0]?node->name:"Name unbekannt";oledLineFixed(d,0,13,name);oledLineFixed(d,0,21,wrappedLineStart(name,1));
   const bool fresh=node->hasDirect&&uint32_t(now-node->directSeen)<=180000;
   if(node->hasDirect)snprintf(line,sizeof(line),"%02X%02X%s %ddBm",node->key[0],node->key[1],data.shortIdCollision(*node)?"*":"",node->rssi);
   else snprintf(line,sizeof(line),"%02X%02X%s RSSI --",node->key[0],node->key[1],data.shortIdCollision(*node)?"*":"");

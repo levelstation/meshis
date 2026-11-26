@@ -13,6 +13,7 @@ static bool renderLayouts=false;
 int runHeltecTests(const std::string& output);
 int runLiveRadioTests(const std::string& output);
 int runScreenPinTests(const std::string& output);
+int runTextScrollTests(const std::string& output);
 @interface PrgLabButton:LabButton @end
 @implementation PrgLabButton
 -(void)mouseDown:(NSEvent*)event{[self highlight:YES];model->prgLevel(true);}
@@ -258,6 +259,7 @@ int runScreenPinTests(const std::string& output);
 -(void)applicationWillTerminate:(NSNotification*)note{[self.timer invalidate];if(self.monitor)[NSEvent removeMonitor:self.monitor];}
 @end
 int main(int argc,char** argv){@autoreleasepool{
+  if(argc>1 && std::string(argv[1])=="--scroll-self-test")return runTextScrollTests(argc>2?argv[2]:"build/text-scroll/screenshots");
   if(argc>1 && std::string(argv[1])=="--pin-self-test")return runScreenPinTests(argc>2?argv[2]:"build/screen-pin/screenshots");
   if(Simulator::heltecPrg() && argc>1 && std::string(argv[1])=="--self-test")return runHeltecTests(argc>2?argv[2]:"build/heltec/screenshots");
   if(Simulator::liveRadio() && !Simulator::heltecPrg() && argc>1 && std::string(argv[1])=="--self-test")return runLiveRadioTests(argc>2?argv[2]:"build/radio-live/screenshots");

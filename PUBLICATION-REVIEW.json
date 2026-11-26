@@ -1,6 +1,6 @@
 {
   "date": "2026-11-26",
-  "scope": "four-digit screen PIN, browser simulators and versioned preview downloads",
+  "scope": "Wio text marquee, current browser simulation and versioned Wio downloads",
   "known_personal_markers": 0,
   "protocol_changed": false,
   "old_downloads": "RETAINED",
@@ -8,9 +8,11 @@
   "hardware_flashed": false,
   "pin_default": "DISABLED; no preconfigured code",
   "pin_storage": "salted verifier; separate from BLE PIN",
-  "heltec": "PREVIEW",
-  "source_sha256sums": "31f8fc10ad959a02d1825ba7e41f1407a6184687e466b0d5e76c8837182675df",
+  "heltec": "Existing dev4 PREVIEW unchanged",
+  "source_sha256sums": "0664223791a668d62fe1eaf14d411bfbdb5f6d7555ad0f908a3a227268b13778",
   "browser_pin_test": "PASS Wio and Heltec; native/WASM pixel parity",
   "source_archive_scope": "firmware and simulator only; website/environment files excluded",
-  "source_archive_privacy": "PASS zero findings"
+  "source_archive_privacy": "PASS zero findings",
+  "wio_version": "RC8",
+  "browser_scroll_test": "PASS Wio; 72 native/WASM comparisons and 60 functional groups"
 }

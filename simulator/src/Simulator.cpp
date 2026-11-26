@@ -4,12 +4,19 @@
 #include "MeshiSprites.h"
 #include "LockRenderer.h"
 #include "ScreenPinRenderer.h"
+#include "TextMarquee.h"
+#include "TextReadSession.h"
 #include "MenuActions.h"
 #include "PrgInput.h"
 #include "RuntimeTelemetry.h"
 #include <array>
 ColorVal UIColor::window_bkg=0,UIColor::title_bkg=0,UIColor::title_txt=1,UIColor::primary_txt=1,
   UIColor::secondary_txt=1,UIColor::warning_txt=1,UIColor::popup_bkg=0,UIColor::popup_txt=1,UIColor::corp_blue=1;
+static void resetTextReading(){
+#if defined(MESHIS_V2) && !defined(MESHIS_HELTEC_PRG)
+  meshis::textMarquee().reset();meshis::textReadSession().reset();
+#endif
+}
 struct DesktopDisplay:FramebufferDisplay {
   std::array<uint8_t,1024> bytes{};bool on=true;
   DesktopDisplay():FramebufferDisplay(nullptr){bindFramebuffer(bytes.data());}
@@ -28,6 +35,7 @@ struct Simulator::Impl {
   ),preview(&task,&rtc_clock),current(&home){}
 };
 Simulator::Simulator(){
+  resetTextReading();
   simMillis=10000;rtc_clock.set(1782864000);board=Board{};radio_driver=Radio{};the_mesh=Mesh{};
   nux.reset(simMillis);messages={};messageMesh={};nuxBatteryMv=3984;chargeStatus=meshis::ChargeStatus::NotCharging;
 #if defined(MESHIS_V2)
@@ -39,7 +47,7 @@ Simulator::Simulator(){
 Simulator::~Simulator(){meshis::screenPin().bind(nullptr);}
 void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clock.set(rtc_clock.getCurrentTime()+impl_->fractional/1000);impl_->fractional%=1000;
 #if defined(MESHIS_V2)
-  auto& lock=meshis::keyLock();
+  auto& lock=meshis::keyLock();const bool hadLockOverlay=lock.overlay();
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
   auto& live=meshis::runtimeTelemetry();if(live.due(simMillis)){
     const float variation=radio_driver.noise?float(int((simMillis/500)%9)-4):0;
@@ -52,9 +60,10 @@ void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clo
   const uint8_t input=meshis::prgKey(action);if(input && !lock.blocks())impl_->current->handleInput(static_cast<char>(input));
 #else
   if(impl_->menuDebounce.sample(impl_->menuDown,simMillis))lock.menuPress(simMillis);lock.poll(simMillis);
-  meshis::dispatchMenuAction(lock,impl_->task,[&](){impl_->current->handleInput(KEY_CANCEL);});
+  meshis::dispatchMenuAction(lock,impl_->task,[&](){resetTextReading();impl_->current->handleInput(KEY_CANCEL);});
 #endif
   lock.poll(simMillis);
+  if(hadLockOverlay!=lock.overlay())resetTextReading();
   commitScreenPinChange();
   quickTx.poll(messageMesh,simMillis);if(!lock.overlay())impl_->current->poll();
 #if defined(MESHIS_HELTEC_PRG) || defined(MESHIS_LIVE_RADIO)
@@ -72,11 +81,16 @@ void Simulator::advance(uint32_t ms){simMillis+=ms;impl_->fractional+=ms;rtc_clo
   if(impl_->task.goHome && !locked()){showHome();impl_->task.goHome=false;}}
 
 void Simulator::key(uint8_t key){
+  if(key!=27 && !locked())resetTextReading();
 #if defined(MESHIS_V2)
   key=meshis::keyLock().route(key,simMillis);commitScreenPinChange();if(!key){render();return;}
 #endif
   impl_->current->handleInput(static_cast<char>(key));if(impl_->task.goHome){showHome();impl_->task.goHome=false;}render();}
-void Simulator::render(){auto& d=impl_->display;d.startFrame();
+void Simulator::render(){
+#if defined(MESHIS_V2) && !defined(MESHIS_HELTEC_PRG)
+  meshis::textMarquee().setNow(simMillis);
+#endif
+  auto& d=impl_->display;d.startFrame();
 #if defined(MESHIS_V2)
   if(meshis::screenPin().entryActive())meshis::renderScreenPin(d,meshis::screenPin(),simMillis);
   else if(meshis::keyLock().overlay()){
@@ -95,9 +109,9 @@ void Simulator::setUtc(uint32_t v){rtc_clock.set(v);impl_->fractional=0;render()
 int64_t Simulator::local()const{return meshis::localTime(utc(),luxembourg());}
 void Simulator::setLuxembourg(bool v){if(locked())return;impl_->prefs.meshis_timezone=v;render();}bool Simulator::luxembourg()const{return impl_->prefs.meshis_timezone==1;}
 void Simulator::setAnimations(bool v){if(locked())return;impl_->prefs.meshis_animations=v;render();}bool Simulator::animations()const{return impl_->prefs.meshis_animations!=0;}
-void Simulator::showHome(){if(locked())return;meshis::activeDiscovery().stop();impl_->current=&impl_->home;impl_->task.alertExpiry=0;}
+void Simulator::showHome(){if(locked())return;resetTextReading();meshis::activeDiscovery().stop();impl_->current=&impl_->home;impl_->task.alertExpiry=0;}
 void Simulator::showSplash(){
-  if(locked())return;meshis::activeDiscovery().stop();
+  if(locked())return;resetTextReading();meshis::activeDiscovery().stop();
   impl_->splash=SplashScreen(&impl_->task
 #if defined(MESHIS_BOARD)
     ,&impl_->prefs
@@ -180,6 +194,7 @@ void Simulator::event(Event e){
 }
 
 void Simulator::resetPreservingSettings(){
+  resetTextReading();
   commitScreenPinChange();
   const NodePrefs saved=impl_->prefs;const uint32_t clock=utc();const bool savedSound=soundEnabled();
   simMillis=0;board=Board{};radio_driver=Radio{};radio_driver.rx=radio_driver.tx=radio_driver.errors=0;
@@ -348,4 +363,37 @@ void Simulator::commitScreenPinChange(){
  if(!meshis::screenPin().takeChanged())return;
  const bool saved=the_mesh.saveScreenPinPrefs();meshis::screenPin().resolveSave(saved);
  impl_->task.showAlert(saved?(meshis::screenPin().enabled()?"PIN gespeichert":"PIN entfernt"):"PIN Speicherfehler",1200);
+}
+
+void Simulator::showReceivedPreview(const char* sender,const char* text){
+ receiveSimulated(meshis::txChannel(0),sender,text);
+ impl_->preview.addPreview(0xff,sender,text);
+ if(!locked()){resetTextReading();impl_->current=&impl_->preview;}
+ render();
+}
+void Simulator::setSimRecentName(const char* name){snprintf(the_mesh.recentName,sizeof(the_mesh.recentName),"%s",name?name:"");resetTextReading();render();}
+void Simulator::setSimContactName(unsigned index,const char* name){
+#if defined(MESHIS_V2)
+ if(index<2)snprintf(messageMesh.contactNames[index],32,"%s",name?name:"");
+#endif
+ resetTextReading();render();
+}
+void Simulator::setSimNodeName(const char* name){snprintf(impl_->prefs.node_name,sizeof(impl_->prefs.node_name),"%s",name?name:"");resetTextReading();render();}
+
+// Explicit local browser demo. No free-form radio data or device API is used.
+void Simulator::showTextScrollDemo(int view){
+#if defined(MESHIS_V2) && !defined(MESHIS_HELTEC_PRG)
+ if(locked() || view<0 || view>3)return;
+ static const char* sender="DEMO_REPEATER_LANGER_NAME_12345";
+ static const char* message="SIMULATION: Ein langer Nachrichtentext laeuft nach einer kurzen Lesepause nach links. Alle empfangenen Zeichen bleiben lesbar. ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 TEXTENDE";
+ if(view==1){showReceivedPreview(sender,message);return;}
+ const char* target=view==2?"Recent adverts":"Messages";
+ for(int n=0;n<pageCount();++n)if(!strcmp(pageName(n),target)){goToPage(n);break;}
+ if(view==2){setSimRecentName(sender);return;}
+ if(view==3)setSimContactName(0,sender);
+ else receiveSimulated(meshis::txChannel(0),sender,message);
+ key(KEY_ENTER);key(KEY_DOWN);if(view==3)key(KEY_DOWN);key(KEY_ENTER);render();
+#else
+ (void)view;
+#endif
 }
